@@ -7,9 +7,23 @@ import dns.dnssec
 import dns.message
 import dns.resolver
 import dns.rdatatype
+from enum import Enum
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("dnssec_scanner")
+
+
+class State(Enum):
+    SECURE = 0  # DNSSEC is available
+    INSECURE = 1  # there is proof that no DNSSEC is available
+    BOGUS = 2  # something is wrong with the chain of trust
+
+
+class DNSSECScannerResult:
+    def __init__(self, domain: str):
+        self.domain = domain
+        self.state = State.SECURE
+        self.errors = []
 
 
 class Zone:
@@ -27,9 +41,9 @@ class Zone:
 
     def compute(self):
         if self.DNSKEY:
-            ksk = DnssecScanner._get_dnskey(self.DNSKEY, 257)
+            ksk = DNSSECScanner._get_dnskey(self.DNSKEY, 257)
             self.KSK_id = dns.dnssec.key_id(ksk)
-            zsk = DnssecScanner._get_dnskey(self.DNSKEY, 256)
+            zsk = DNSSECScanner._get_dnskey(self.DNSKEY, 256)
             self.ZSK_id = dns.dnssec.key_id(zsk)
         else:
             self.KSK_id = -1
@@ -44,13 +58,14 @@ class Zone:
         )
 
 
-class DnssecScanner:
+class DNSSECScanner:
 
     ROOT_ZONE = "199.7.83.42"
     RESOLVER_IPS = ["8.8.8.8", "8.8.4.4", "1.1.1.1"]
 
     def __init__(self, domain: str):
         self.domain = domain
+        self.result = DNSSECScannerResult(self.domain)
 
     def run_scan(self) -> dns.rrset.RRset:
         resolver = dns.resolver.Resolver()
@@ -85,11 +100,15 @@ class DnssecScanner:
             return A
 
         ns = self._get_rr_by_type(response.authority, dns.rdatatype.NS)
-
-        zone.RR = self._get_rr_by_type(response.authority, dns.rdatatype.DS)
-        zone.RR_RRSIG = self._get_rr_by_type(response.authority, dns.rdatatype.RRSIG)
-
         next_zone_name = str(ns.name)
+
+        request = dns.message.make_query(
+            next_zone_name, dns.rdatatype.DS, want_dnssec=True
+        )
+        response = dns.query.udp(request, zone_ip)
+
+        zone.RR = self._get_rr_by_type(response.answer, dns.rdatatype.DS)
+        zone.RR_RRSIG = self._get_rr_by_type(response.answer, dns.rdatatype.RRSIG)
 
         ns_ip = resolver.query(ns.items[0].to_text(), "A").rrset.items[0].address
 
@@ -115,10 +134,10 @@ class DnssecScanner:
             else:
                 log.info(f"Found trusted root KSK")
 
-        # Validate ZSK
-        if not zone.DNSKEY or not zone.DNSKEY_RRSIG:
-            log.info(f"{zone.name} zone: No DNSKEY or DNSKEY RRSIG found")
-        else:
+        if isinstance(zone.DNSKEY, dns.rrset.RRset) and isinstance(
+            zone.DNSKEY_RRSIG, dns.rrset.RRset
+        ):
+            # Validate ZSK
             try:
                 dns.dnssec.validate_rrsig(
                     zone.DNSKEY,
@@ -129,18 +148,38 @@ class DnssecScanner:
                 log.info(f"{zone.name} zone: Could not validate ZSK ({e})")
             else:
                 log.info(f"{zone.name} zones: ZSK successfully validated")
-
-        # Validate RRsets
-        try:
-            dns.dnssec.validate_rrsig(
-                zone.RR,
-                zone.RR_RRSIG.items[0],
-                {dns.name.from_text(zone.name): zone.DNSKEY},
-            )
-        except dns.dnssec.ValidationFailure as e:
-            log.info(f"{zone.name} zone: Could not validate RRsets ({e})")
         else:
-            log.info(f"{zone.name} zone: RR successfully validated")
+            if not isinstance(zone.DNSKEY, dns.rrset.RRset):
+                log.info(f"{zone.name} zone: No DNSKEY found")
+            if not isinstance(zone.DNSKEY_RRSIG, dns.rrset.RRset):
+                log.info(f"{zone.name} zone: No DNSKEY RRSIG found")
+
+        if (
+            isinstance(zone.DNSKEY, dns.rrset.RRset)
+            and isinstance(zone.RR, dns.rrset.RRset)
+            and isinstance(zone.RR_RRSIG, dns.rrset.RRset)
+        ):
+            # Validate RRsets
+            try:
+                dns.dnssec.validate_rrsig(
+                    zone.RR,
+                    zone.RR_RRSIG.items[0],
+                    {dns.name.from_text(zone.name): zone.DNSKEY},
+                )
+            except dns.dnssec.ValidationFailure as e:
+                log.info(f"{zone.name} zone: Could not validate {dns.rdatatype._by_value[zone.RR.rdtype]} ({e})")
+            else:
+                log.info(f"{zone.name} zone: {dns.rdatatype._by_value[zone.RR.rdtype]} record successfully validated")
+        else:
+            if not isinstance(zone.RR, dns.rrset.RRset):
+                log.info(
+                    f"{zone.name} zone: No {dns.rdatatype._by_value[zone.RR]} RR found"
+                )
+            if not isinstance(zone.RR_RRSIG, dns.rrset.RRset):
+                rrset_type = dns.rdatatype._by_value[
+                    zone.RR.rdtype if isinstance(zone.RR, dns.rrset.RRset) else zone.RR
+                ]
+                log.info(f"{zone.name} zone: No RRSIG for {rrset_type} record found")
 
     @staticmethod
     def _get_rr_by_type(
@@ -149,7 +188,7 @@ class DnssecScanner:
         for item in items:
             if item.rdtype == rdtype:
                 return item
-        return None
+        return rdtype
 
     @staticmethod
     def _get_dnskey(keys: dns.rrset.RRset, flags: int):
@@ -167,6 +206,6 @@ class DnssecScanner:
 
 
 if __name__ == "__main__":
-    scanner = DnssecScanner("www.dnssec-failed.org")
+    scanner = DNSSECScanner("yes.com")
     rrset = scanner.run_scan()
     print(rrset.to_text())
