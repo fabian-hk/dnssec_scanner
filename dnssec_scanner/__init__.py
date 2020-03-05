@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass
+from enum import Enum
 
 import logging
 import dns.name
@@ -9,7 +10,9 @@ import dns.dnssec
 import dns.message
 import dns.resolver
 import dns.rdatatype
-from enum import Enum
+from tabulate import tabulate
+from textwrap import TextWrapper
+
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("dnssec_scanner")
@@ -34,28 +37,53 @@ class DNSSECScannerResult:
     def __init__(self, domain: str):
         self.domain = domain
         self.state = State.SECURE
+        self.info: List[str] = []
         self.warnings: List[str] = []
         self.errors: List[str] = []
 
+        self.tmp: Dict[bool, List[str]] = {True: [], False: []}
+
+    def add_message(self, error: bool, msg: str):
+        self.tmp[error].append(msg)
+
+    def compute_messages(self, warn: bool):
+        self.info.extend(self.tmp[True])
+
+        if not self.tmp[True]:
+            self.errors.extend(self.tmp[False])
+
+            if self.state == State.SECURE and self.tmp[False]:
+                self.state = State.BOGUS
+
+        if warn and self.tmp[True]:
+            self.warnings.extend(self.tmp[False])
+
+        self.tmp = {True: [], False: []}
+
     def __str__(self):
-        return f"Domain: {self.domain}, DNSSEC: {self.state}"
+        wrapper = TextWrapper(width=40)
+        tmp_info = [wrapper.fill(t) for t in self.info]
+        tmp_warn = [wrapper.fill(t) for t in self.warnings]
+        tmp_err = [wrapper.fill(t) for t in self.errors]
+
+        res = {"Info": tmp_info, "Warnings": tmp_warn, "Errors": tmp_err}
+        return (
+            f"\nDomain: {self.domain}, DNSSEC: {self.state}\n\n"
+            f"{tabulate(res, headers='keys', tablefmt='fancy_grid', showindex='always')}"
+        )
 
 
 class Zone:
-    name: str
-    ip: str
-    DNSKEY: dns.rrset.RRset
-    DNSKEY_RRSIG: dns.rrset.RRset
-    RR: dns.rrset.RRset
-    RR_type: str
-    RR_RRSIG: dns.rrset.RRset
-    parent: Optional[Zone]
-    child_name: str = ""
-
     def __init__(self, name: str, ip: str, parent: Optional[Zone]):
         self.name = name
         self.ip = ip
-        self.parent = parent
+        self.parent: Zone = parent
+        self.DNSKEY: dns.rrset.RRset
+        self.DNSKEY_RRSIG: dns.rrset.RRset
+        self.RR: dns.rrset.RRset
+        self.RR_type: str
+        self.RR_RRSIG: dns.rrset.RRset
+        self.child_name: str = ""
 
     def compute(self):
         self.RR_type = dns.rdatatype._by_value[
@@ -112,7 +140,7 @@ class DNSSECScanner:
             A = self._get_rr_by_type(response.answer, dns.rdatatype.A)
             zone.RR = A
             zone.RR_RRSIG = self._get_rr_by_type(response.answer, dns.rdatatype.RRSIG)
-            self.validate_zone(zone)
+            self.validate_zone(zone, result)
             result.rrset = A
             return result
 
@@ -130,103 +158,168 @@ class DNSSECScanner:
 
         next_zone_ip = resolver.query(ns.items[0].to_text(), "A").rrset.items[0].address
 
-        self.validate_zone(zone)
+        self.validate_zone(zone, result)
 
         next_zone = Zone(next_zone_name, next_zone_ip, zone)
 
         return self.scan_zone(next_zone, result, resolver)
 
-    def validate_zone(self, zone: Zone):
+    def validate_zone(self, zone: Zone, result: DNSSECScannerResult):
         # initialize zone
         zone.compute()
 
         if isinstance(zone.DNSKEY, dns.rrset.RRset) and isinstance(
             zone.DNSKEY_RRSIG, dns.rrset.RRset
         ):
-            ksks = self._get_dnskey(zone.DNSKEY, Key.KSK)
+            trusted_ksks, untrusted_ksks = self.validate_ksks(zone, result)
+            self.validate_zsks(zone, trusted_ksks, untrusted_ksks, result)
 
-            if not ksks:
-                log.info(f"{zone.name} zone: No KSKs found")
-
-            # validate KSKs
-            trusted_ksks = []
-            for i, ksk in enumerate(ksks):
-
-                if zone.parent:
-                    # we are in a sub-zone
-                    ds_ = dns.dnssec.make_ds(
-                        dns.name.from_text(zone.name),
-                        ksk,
-                        self._algorithm_hash_function(ksk.algorithm),
-                    )
-                    for j, ds in enumerate(self._get_rrs_by_type(zone.parent.RR.items, dns.rdatatype.DS)):
-                        if str(zone.parent.RR.name) == zone.name and ds == ds_:
-                            log.info(f"{zone.name} zone: KSK {i} successfully validated with DS {j}")
-                            trusted_ksks.append(ksk)
-                        else:
-                            log.info(f"{zone.name} zone: Could not validate KSK {i} with DS {j}")
-                else:
-                    # we are in the root zone
-                    ksk_ds = dns.dnssec.make_ds(".", ksk, "SHA256")
-                    ksk_digest = ksk_ds.digest.hex().upper()
-
-                    # TODO make full check with https://data.iana.org/root-anchors/root-anchors.xml
-                    if (
-                        ksk_digest
-                        == "E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D"
-                    ):
-                        log.info(f"{zone.name} zone: Found trusted root KSK {i}")
-                        trusted_ksks.append(ksk)
-                    else:
-                        log.info(f"{zone.name} zone: Untrusted root KSK {i}")
-
-            # Validate DNSKEY RR with one of the RRSIGs
-            for i, rr_sig in enumerate(zone.DNSKEY_RRSIG):
-                try:
-                    dns.dnssec.validate_rrsig(
-                        zone.DNSKEY,
-                        rr_sig,
-                        {dns.name.from_text(zone.name): trusted_ksks},
-                    )
-                except dns.dnssec.ValidationFailure as e:
-                    log.info(f"{zone.name} zone: Could not validate DNSKEY with RRSIG {i} ({e})")
-                else:
-                    log.info(f"{zone.name} zones: DNSKEY successfully validated with RRSIG {i}")
+            if isinstance(zone.RR, dns.rrset.RRset) and isinstance(
+                zone.RR_RRSIG, dns.rrset.RRset
+            ):
+                self.validate_rrset(zone, result)
+            else:
+                if not isinstance(zone.RR, dns.rrset.RRset):
+                    msg = f"{zone.name} zone: No {zone.RR_type} RR found for {zone.child_name}"
+                    log.info(msg)
+                    result.add_message(False, msg)
+                if not isinstance(zone.RR_RRSIG, dns.rrset.RRset):
+                    msg = f"{zone.name} zone: No RRSIG for {zone.RR_type} record found"
+                    log.info(msg)
+                    result.add_message(False, msg)
+                result.compute_messages(False)
         else:
             if not isinstance(zone.DNSKEY, dns.rrset.RRset):
-                log.info(f"{zone.name} zone: No DNSKEY found")
+                msg = f"{zone.name} zone: No DNSKEY found"
+                log.info(msg)
+                result.add_message(False, msg)
             if not isinstance(zone.DNSKEY_RRSIG, dns.rrset.RRset):
-                log.info(f"{zone.name} zone: No DNSKEY RRSIG found")
+                msg = f"{zone.name} zone: No DNSKEY RRSIG found"
+                log.info(msg)
+                result.add_message(False, msg)
+            result.compute_messages(False)
 
-        if (
-            isinstance(zone.DNSKEY, dns.rrset.RRset)
-            and isinstance(zone.RR, dns.rrset.RRset)
-            and isinstance(zone.RR_RRSIG, dns.rrset.RRset)
-        ):
-            # Validate RRsets
-            zsks = self._get_dnskey(zone.DNSKEY, Key.ZSK)
-            for i, rr_sig in enumerate(zone.RR_RRSIG):
-                try:
-                    dns.dnssec.validate_rrsig(
-                        zone.RR,
-                        rr_sig,
-                        {dns.name.from_text(zone.name): zsks},
-                    )
-                except dns.dnssec.ValidationFailure as e:
-                    log.info(
-                        f"{zone.name} zone: Could not validate {zone.RR_type} for {zone.child_name} with RRSIG {i} ({e})"
-                    )
-                else:
-                    log.info(
-                        f"{zone.name} zone: {zone.child_name} {zone.RR_type} record successfully validated with RRSIG {i}"
-                    )
-        else:
-            if not isinstance(zone.RR, dns.rrset.RRset):
-                log.info(
-                    f"{zone.name} zone: No {zone.RR_type} RR found for {zone.child_name}"
+    def validate_ksks(
+        self, zone: Zone, result: DNSSECScannerResult
+    ) -> Tuple[List[dns.rdatatype.DNSKEY], List[dns.rdatatype.DNSKEY]]:
+        ksks = self._get_dnskey(zone.DNSKEY, Key.KSK)
+
+        if not ksks:
+            msg = f"{zone.name} zone: No KSKs found"
+            log.info(msg)
+            result.add_message(False, msg)
+            result.compute_messages(False)
+
+        # validate KSKs
+        trusted_ksks = []
+        untrusted_ksks = []
+        for i, ksk in enumerate(ksks):
+            if zone.parent:
+                # we are in a sub-zone
+                ds_ = dns.dnssec.make_ds(
+                    dns.name.from_text(zone.name),
+                    ksk,
+                    self._algorithm_hash_function(ksk.algorithm),
                 )
-            if not isinstance(zone.RR_RRSIG, dns.rrset.RRset):
-                log.info(f"{zone.name} zone: No RRSIG for {zone.RR_type} record found")
+                for j, ds in enumerate(
+                    self._get_rrs_by_type(zone.parent.RR.items, dns.rdatatype.DS)
+                ):
+                    if str(zone.parent.RR.name) == zone.name and ds == ds_:
+                        msg = f"{zone.name} zone: KSK {i} successfully validated with DS {j}"
+                        log.info(msg)
+                        result.add_message(True, msg)
+                        trusted_ksks.append(ksk)
+                    else:
+                        msg = (
+                            f"{zone.name} zone: Could not validate KSK {i} with DS {j}"
+                        )
+                        log.info(msg)
+                        result.add_message(False, msg)
+                        untrusted_ksks.append(ksk)
+            else:
+                # we are in the root zone
+                ksk_ds = dns.dnssec.make_ds(".", ksk, "SHA256")
+                ksk_digest = ksk_ds.digest.hex().upper()
+
+                # TODO make full check with https://data.iana.org/root-anchors/root-anchors.xml
+                if (
+                    ksk_digest
+                    == "E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D"
+                ):
+                    msg = f"{zone.name} zone: Found trusted root KSK {i}"
+                    log.info(msg)
+                    result.add_message(True, msg)
+                    trusted_ksks.append(ksk)
+                else:
+                    msg = f"{zone.name} zone: Untrusted root KSK {i}"
+                    log.info(msg)
+                    result.add_message(False, msg)
+                    untrusted_ksks.append(ksk)
+        result.compute_messages(False)
+
+        return trusted_ksks, untrusted_ksks
+
+    def validate_zsks(
+        self,
+        zone: Zone,
+        trusted_ksks: List[dns.rdatatype.DNSKEY],
+        untrusted_ksks: List[dns.rdatatype.DNSKEY],
+        result: DNSSECScannerResult,
+    ):
+        suc = False
+        # use trusted KSKs
+        for i, rr_sig in enumerate(zone.DNSKEY_RRSIG):
+            # use trusted KSKs
+            try:
+                dns.dnssec.validate_rrsig(
+                    zone.DNSKEY, rr_sig, {dns.name.from_text(zone.name): trusted_ksks},
+                )
+            except dns.dnssec.ValidationFailure as e:
+                msg = (
+                    f"{zone.name} zone: Could not validate DNSKEY with RRSIG {i} ({e})"
+                )
+                log.info(msg)
+                result.add_message(False, msg)
+            else:
+                suc = True
+                msg = f"{zone.name} zones: DNSKEY successfully validated with RRSIG {i}"
+                log.info(msg)
+                result.add_message(True, msg)
+        result.compute_messages(True)
+
+        # use untrusted KSKs
+        for i, rr_sig in enumerate(zone.DNSKEY_RRSIG):
+            try:
+                dns.dnssec.validate_rrsig(
+                    zone.DNSKEY, rr_sig, {dns.name.from_text(zone.name): untrusted_ksks},
+                )
+            except dns.dnssec.ValidationFailure as e:
+                pass
+            else:
+                msg = f"{zone.name} zones: DNSKEY successfully validated with RRSIG {i} and untrusted KSK"
+                log.info(msg)
+                if suc:
+                    result.warnings.append(msg)
+                else:
+                    result.info.append(msg)
+
+    def validate_rrset(self, zone: Zone, result: DNSSECScannerResult):
+        # Validate RRsets
+        zsks = self._get_dnskey(zone.DNSKEY, Key.ZSK)
+        for i, rr_sig in enumerate(zone.RR_RRSIG):
+            try:
+                dns.dnssec.validate_rrsig(
+                    zone.RR, rr_sig, {dns.name.from_text(zone.name): zsks},
+                )
+            except dns.dnssec.ValidationFailure as e:
+                msg = f"{zone.name} zone: Could not validate {zone.RR_type} for {zone.child_name} with RRSIG {i} ({e})"
+                log.info(msg)
+                result.add_message(False, msg)
+            else:
+                msg = f"{zone.name} zone: {zone.child_name} {zone.RR_type} record successfully validated with RRSIG {i}"
+                log.info(msg)
+                result.add_message(True, msg)
+        result.compute_messages(True)
 
     @staticmethod
     def _get_rr_by_type(
@@ -280,5 +373,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("yes.com")
+    scanner = DNSSECScanner("www.dnssec-failed.org")
     res = scanner.run_scan()
+    print(res)
