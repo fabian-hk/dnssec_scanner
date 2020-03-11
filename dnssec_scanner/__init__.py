@@ -4,7 +4,11 @@ import logging
 import dns
 import dns.resolver
 
-from dnssec_scanner.dnssec_validation import validate_zone, validate_rrset
+from dnssec_scanner.dnssec_validation import (
+    validate_zone,
+    validate_rrset,
+    proof_none_existence,
+)
 from dnssec_scanner.utils import DNSSECScannerResult, Zone
 from dnssec_scanner import utils
 
@@ -45,7 +49,10 @@ class DNSSECScanner:
 
         response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.SOA)
 
-        if utils.get_rrs_by_type(response.answer+response.authority, dns.rdatatype.SOA):
+        rrsets = response.answer + response.authority
+        if utils.get_rrs_by_type(rrsets, dns.rdatatype.SOA) or utils.get_rrs_by_type(
+                rrsets, dns.rdatatype.CNAME
+        ):
             validate_zone(zone, result)
 
             rr_types = self.find_records(zone)
@@ -69,6 +76,8 @@ class DNSSECScanner:
             utils.get_rr_by_type(response.answer, dns.rdatatype.RRSIG),
         ]
         if not zone.RR[0]:
+            zone.RR = response.authority
+            proof_none_existence(zone, result)
             msg = f"{zone.name} zone: No DS RR found for {zone.child_name}"
             log.info(msg)
             result.add_message(False, msg)
@@ -95,9 +104,7 @@ class DNSSECScanner:
         ]
 
         # ask with ANY for all existing records
-        request = dns.message.make_query(
-            self.domain, dns.rdatatype.ANY, payload=16384
-        )
+        request = dns.message.make_query(self.domain, dns.rdatatype.ANY, payload=16384)
         response = dns.query.tcp(request, zone.ip)
 
         for rr in response.answer:
@@ -119,8 +126,7 @@ class DNSSECScanner:
         return result
 
 
-
 if __name__ == "__main__":
-    scanner = DNSSECScanner("yes.com")
+    scanner = DNSSECScanner("google.com")
     res = scanner.run_scan()
     print(res)

@@ -6,6 +6,7 @@ from textwrap import TextWrapper
 from dataclasses import dataclass
 
 import dns
+import base64
 
 
 class Key(Enum):
@@ -109,13 +110,13 @@ def get_rr_by_type(
 
 
 def get_rrsig_for_rr(
-    rrs: List[dns.rrset.RRset], rdtype: dns.rdatatype
+        rrs: List[dns.rrset.RRset], rr: dns.rrset.RRset
 ) -> List[dns.rdtypes.ANY.RRSIG]:
     result = []
-    for rr in rrs:
-        if rr.rdtype == dns.rdatatype.RRSIG:
-            for sig in rr:
-                if sig.type_covered == rdtype:
+    for t in rrs:
+        if t.rdtype == dns.rdatatype.RRSIG and rr.name == t.name:
+            for sig in t:
+                if sig.type_covered == rr.rdtype:
                     result.append(sig)
     return result
 
@@ -126,7 +127,7 @@ def get_rrs_by_type(
     result = []
     for item in items:
         if item.rdtype == rdtype:
-            result.append(item)
+            result.append((item.name, item))
     return result
 
 
@@ -162,9 +163,17 @@ def algorithm_hash_function(algo: Optional[int, str]) -> str:
         return "SHA512"
     return ""
 
+
 def remove_dup(l: List[any]) -> List[any]:
     r = []
     for i in l:
         if i not in r:
             r.append(i)
     return r
+
+
+def nsec3_next_to_string(nsec3: dns.rdtypes.ANY.NSEC3):
+    b32_to_b32hex = str.maketrans(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", "0123456789ABCDEFGHIJKLMNOPQRSTUV"
+    )
+    return base64.b32encode(nsec3.next).decode("utf-8").translate(b32_to_b32hex)
