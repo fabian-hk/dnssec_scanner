@@ -24,15 +24,15 @@ class DNSSECScanner:
 
     def __init__(self, domain: str):
         self.domain = domain
+        self.root_zone = Zone(".", self.ROOT_ZONE[0], self.ROOT_ZONE[1], None)
 
     def run_scan(self) -> DNSSECScannerResult:
         resolver = dns.resolver.Resolver()
         resolver.nameservers = self.RESOLVER_IPS
 
-        zone = Zone(".", self.ROOT_ZONE[0], self.ROOT_ZONE[1], None)
         result = DNSSECScannerResult(self.domain)
 
-        result = self.scan_zone(zone, result, resolver)
+        result = self.scan_zone(self.root_zone, result, resolver)
 
         return result
 
@@ -50,9 +50,7 @@ class DNSSECScanner:
         response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.SOA)
 
         rrsets = response.answer + response.authority
-        if utils.get_rrs_by_type(rrsets, dns.rdatatype.SOA) or utils.get_rrs_by_type(
-                rrsets, dns.rdatatype.CNAME
-        ):
+        if utils.get_rrs_by_type(rrsets, dns.rdatatype.SOA):
             validate_zone(zone, result)
 
             rr_types = self.find_records(zone)
@@ -60,6 +58,16 @@ class DNSSECScanner:
 
             validate_rrset(zone, result)
             return result
+        elif utils.get_rrs_by_type(rrsets, dns.rdatatype.CNAME):
+            validate_zone(zone, result)
+
+            zone.RR = rrsets
+            validate_rrset(zone, result)  # validate CNAME entry
+
+            self.domain = str(
+                utils.get_rr_by_type(rrsets, dns.rdatatype.CNAME).items[0].target
+            )
+            return self.scan_zone(self.root_zone, result, resolver)
 
         response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.NS)
 
@@ -115,7 +123,9 @@ class DNSSECScanner:
         rr_types = set(rr_types)
         return rr_types
 
-    def get_records(self, zone: Zone, result: DNSSECScannerResult, rrs: Set[int]) -> List[dns.rrset.RRset]:
+    def get_records(
+            self, zone: Zone, result: DNSSECScannerResult, rrs: Set[int]
+    ) -> List[dns.rrset.RRset]:
         output = []
         for rr in rrs:
             response = utils.dns_query(self.domain, zone.ip, rr)
@@ -134,6 +144,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("yes.com")
+    scanner = DNSSECScanner("www.ietf.org")
     res = scanner.run_scan()
     print(res)

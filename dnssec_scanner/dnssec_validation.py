@@ -230,6 +230,12 @@ def validate_rrset(zone: Zone, result: DNSSECScannerResult) -> bool:
 
 
 def proof_none_existence(zone: Zone, result: DNSSECScannerResult):
+    if result.state == State.INSECURE:
+        # We do not have any keys in this zone.
+        # So we do not have to try to proof that
+        # no DNSSEC exists.
+        return
+
     validated = validate_rrset(zone, result)
     for name, nsec3s in utils.get_rrs_by_type(zone.RR, dns.rdatatype.NSEC3):
         for nsec3 in nsec3s:
@@ -240,7 +246,7 @@ def proof_none_existence(zone: Zone, result: DNSSECScannerResult):
 
             if domain_hash == current_domain_hash:
                 rrsets_available = utils.nsec3_window_to_array(nsec3)
-                if dns.rdatatype.DS in rrsets_available:
+                if dns.rdatatype.DS not in rrsets_available:
                     check_dnssec_support(zone, result, validated)
             elif nsec3.flags & 0x01:  # the Opt-Out Flag is set
                 next_domain_hash = utils.nsec3_next_to_string(nsec3)
@@ -256,8 +262,9 @@ def proof_none_existence(zone: Zone, result: DNSSECScannerResult):
 
 
 def check_dnssec_support(zone: Zone, result: DNSSECScannerResult, validated: bool):
-    if result.state == State.SECURE and validated:
-        result.state = State.INSECURE
+    if validated:
+        if result.state == State.SECURE:
+            result.state = State.INSECURE
         msg = f"{zone.name} zone: {zone.child_name} does not support DNSSEC"
         log.info(msg)
         result.add_message(True, msg)
