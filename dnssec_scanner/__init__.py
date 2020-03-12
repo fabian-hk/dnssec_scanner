@@ -56,7 +56,7 @@ class DNSSECScanner:
             validate_zone(zone, result)
 
             rr_types = self.find_records(zone)
-            zone.RR = self.get_records(zone, rr_types)
+            zone.RR = self.get_records(zone, result, rr_types)
 
             validate_rrset(zone, result)
             return result
@@ -115,18 +115,25 @@ class DNSSECScanner:
         rr_types = set(rr_types)
         return rr_types
 
-    def get_records(self, zone: Zone, rrs: Set[int]) -> List[dns.rrset.RRset]:
-        result = []
+    def get_records(self, zone: Zone, result: DNSSECScannerResult, rrs: Set[int]) -> List[dns.rrset.RRset]:
+        output = []
         for rr in rrs:
             response = utils.dns_query(self.domain, zone.ip, rr)
             # check if RR exists
-            if utils.get_rrs_by_type(response.answer, rr):
-                result.extend(response.answer)
+            rrsets = utils.get_rrs_by_type(response.answer, rr)
+            if rrsets:
+                output.extend(response.answer)
 
-        return result
+            for name, rrset in rrsets:
+                # only for pretty printing
+                for entry in rrset.to_text().split("\n"):
+                    log.info(f"Found DNS entry: {entry}")
+                result.rrsets.append(rrset)
+
+        return output
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("google.com")
+    scanner = DNSSECScanner("yes.com")
     res = scanner.run_scan()
     print(res)

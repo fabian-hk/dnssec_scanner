@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Set, Tuple
 from enum import Enum
 from tabulate import tabulate
 from textwrap import TextWrapper
@@ -22,9 +22,6 @@ class State(Enum):
 
 @dataclass
 class DNSSECScannerResult:
-
-    rrset: dns.rrset.RRset
-
     def __init__(self, domain: str):
         self.domain = domain
         self.state = State.SECURE
@@ -33,6 +30,8 @@ class DNSSECScannerResult:
         self.errors: List[str] = []
 
         self.tmp: Dict[bool, List[str]] = {True: [], False: []}
+
+        self.rrsets: List[dns.rrset.RRset] = []
 
     def add_message(self, error: bool, msg: str):
         self.tmp[error].append(msg)
@@ -122,8 +121,8 @@ def get_rrsig_for_rr(
 
 
 def get_rrs_by_type(
-    items: List[dns.rrset.RRset], rdtype: dns.rdatatype
-) -> List[dns.rrset.RRset]:
+        items: List[dns.rrset.RRset], rdtype: dns.rdatatype
+) -> List[Tuple[str, dns.rrset.RRset]]:
     result = []
     for item in items:
         if item.rdtype == rdtype:
@@ -177,3 +176,16 @@ def nsec3_next_to_string(nsec3: dns.rdtypes.ANY.NSEC3):
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", "0123456789ABCDEFGHIJKLMNOPQRSTUV"
     )
     return base64.b32encode(nsec3.next).decode("utf-8").translate(b32_to_b32hex)
+
+
+def nsec3_window_to_array(nsec3: dns.rdtypes.ANY.NSEC3) -> Set[int]:
+    rrset_types = []
+    for window, bitmap in nsec3.windows:
+        for i, b in enumerate(bitmap):
+            for j in range(8):
+                if b & (0x80 >> j):
+                    rrset_types.append(window * 256 + i * 8 + j)
+                    print(f"Type: {dns.rdatatype.to_text(window * 256 + i * 8 + j)}")
+
+    rrset_types = set(rrset_types)
+    return rrset_types

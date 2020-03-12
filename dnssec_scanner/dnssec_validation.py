@@ -237,23 +237,30 @@ def proof_none_existence(zone: Zone, result: DNSSECScannerResult):
                 zone.child_name, nsec3.salt, nsec3.iterations, nsec3.algorithm
             )
             current_domain_hash = name[0].decode("utf-8").upper()
+
             if domain_hash == current_domain_hash:
-                pass
-                # TODO check which RRsets exist for this domain
-            elif nsec3.flags == 1:  # the Opt-Out Flag is set
+                rrsets_available = utils.nsec3_window_to_array(nsec3)
+                if dns.rdatatype.DS in rrsets_available:
+                    check_dnssec_support(zone, result, validated)
+            elif nsec3.flags & 0x01:  # the Opt-Out Flag is set
                 next_domain_hash = utils.nsec3_next_to_string(nsec3)
-                if (
-                        current_domain_hash < domain_hash < next_domain_hash
-                        and result.state == State.SECURE
-                        and validated
-                ):
-                    result.state = State.INSECURE
-                    msg = f"{zone.name} zone: {zone.child_name} does not support DNSSEC"
-                    log.info(msg)
-                    result.add_message(True, msg)
+                if current_domain_hash < domain_hash < next_domain_hash:
+                    check_dnssec_support(zone, result, validated)
+            else:
+                msg = f"{zone.name} zone: Found NSEC3 RR sets but none matched to the current domain"
+                result.add_message(False, msg)
+
     msg = f"{zone.name} zone: Could not proof that {zone.child_name} zone does not support DNSSEC"
     result.add_message(False, msg)
     result.compute_messages(False)
+
+
+def check_dnssec_support(zone: Zone, result: DNSSECScannerResult, validated: bool):
+    if result.state == State.SECURE and validated:
+        result.state = State.INSECURE
+        msg = f"{zone.name} zone: {zone.child_name} does not support DNSSEC"
+        log.info(msg)
+        result.add_message(True, msg)
 
 
 def nsec3_hash(domain: str, salt: str, iterations: int, algo: int) -> str:
