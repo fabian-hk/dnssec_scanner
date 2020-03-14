@@ -15,43 +15,41 @@ validated
 ```python
 from dnssec_scanner import DNSSECScanner, DNSSECScannerResult
 
-scanner = DNSSECScanner("www.dnssec-failed.org")
+scanner = DNSSECScanner("rhybar.cz")
 res = scanner.run_scan() # type: DNSSECScannerResult
 print(res)
 ```
 
 **Output**
 ```shell script
-Domain: www.dnssec-failed.org, DNSSEC: State.BOGUS
+Domain: rhybar.cz, DNSSEC: State.BOGUS
 
-╒════╤═════════════════════════════════════════╤══════════════════════════════════════════╤══════════════════════════════════════╕
-│    │ Info                                    │ Warnings                                 │ Errors                               │
-╞════╪═════════════════════════════════════════╪══════════════════════════════════════════╪══════════════════════════════════════╡
-│  0 │ . zone: Found trusted root KSK 0        │ org. zone: Could not validate DNSKEY     │ dnssec-failed.org. zone: Could not   │
-│    │                                         │ with RRSIG 1 (verify failure)            │ validate KSK 0 with DS 0             │
-├────┼─────────────────────────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┤
-│  1 │ . zones: DNSKEY successfully validated  │ org. zone: Could not validate DNSKEY     │ dnssec-failed.org. zone: Could not   │
-│    │ with RRSIG 0                            │ with RRSIG 2 (verify failure)            │ validate KSK 0 with DS 1             │
-├────┼─────────────────────────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┤
-│  2 │ . zone: org. DS record successfully     │ org. zones: DNSKEY successfully          │ dnssec-failed.org. zone: Could not   │
-│    │ validated with RRSIG 0                  │ validated with RRSIG 0 and untrusted KSK │ validate DNSKEY with RRSIG 0 (verify │
-│    │                                         │                                          │ failure)                             │
-├────┼─────────────────────────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┤
-│  3 │ org. zone: KSK 0 successfully validated │ org. zones: DNSKEY successfully          │ dnssec-failed.org. zone: Could not   │
-│    │ with DS 0                               │ validated with RRSIG 1 and untrusted KSK │ validate DNSKEY with RRSIG 1 (verify │
-│    │                                         │                                          │ failure)                             │
-├────┼─────────────────────────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┤
-│  4 │ org. zones: DNSKEY successfully         │                                          │                                      │
-│    │ validated with RRSIG 0                  │                                          │                                      │
-├────┼─────────────────────────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┤
-│  5 │ org. zone: dnssec-failed.org. DS record │                                          │                                      │
-│    │ successfully validated with RRSIG 0     │                                          │                                      │
-├────┼─────────────────────────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┤
-│  6 │ dnssec-failed.org. zones: DNSKEY        │                                          │                                      │
-│    │ successfully validated with RRSIG 1 and │                                          │                                      │
-│    │ untrusted KSK                           │                                          │                                      │
-├────┼─────────────────────────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┤
-│  7 │ dnssec-failed.org. zone:  A record      │                                          │                                      │
-│    │ successfully validated with RRSIG 0     │                                          │                                      │
-╘════╧═════════════════════════════════════════╧══════════════════════════════════════════╧══════════════════════════════════════╛
+╒════╤══════════════════════════════════════════╤═════════════════════════════════════╤══════════════════════════════════════════╕
+│    │ Info                                     │ Warnings                            │ Errors                                   │
+╞════╪══════════════════════════════════════════╪═════════════════════════════════════╪══════════════════════════════════════════╡
+│  0 │ . zone: KSK 20326 successfully validated │ rhybar.cz. zone: Could not validate │ rhybar.cz. zone: Could not find a DS RR  │
+│    │ with trusted DS 20326 8 2                │ DNSKEY with untrusted KSK 44566     │ set for KSK 44566                        │
+│    │                                          │ (expired)                           │                                          │
+├────┼──────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────┤
+│  1 │ . zones: DNSKEY successfully validated   │ rhybar.cz. zone: Could not validate │ rhybar.cz. zone: Could not validate any  │
+│    │ with trusted KSK 20326                   │ DNSKEY with ZSK 5172 (expired)      │ KSK                                      │
+├────┼──────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────┤
+│  2 │ . zone: cz. DS record successfully       │                                     │ rhybar.cz. zones: Could not validated    │
+│    │ validated with ZSK 33853                 │                                     │ DNSKEY with a trusted KSK                │
+├────┼──────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────┤
+│  3 │ cz. zone: KSK 20237 successfully         │                                     │ rhybar.cz. zone: Could not validate NS   │
+│    │ validated with trusted DS 20237 13 2     │                                     │ for rhybar.cz. with ZSK 5172 (expired)   │
+├────┼──────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────┤
+│  4 │ cz. zones: DNSKEY successfully validated │                                     │ rhybar.cz. zone: Could not validate SOA  │
+│    │ with trusted KSK 20237                   │                                     │ for rhybar.cz. with ZSK 5172 (expired)   │
+├────┼──────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────┤
+│  5 │ cz. zone: DNSKEY successfully validated  │                                     │ rhybar.cz. zone: Could not find RRSIG    │
+│    │ with ZSK 16513                           │                                     │ for MX                                   │
+├────┼──────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────┤
+│  6 │ cz. zone: rhybar.cz. DS record           │                                     │ rhybar.cz. zone: Could not validate NSEC │
+│    │ successfully validated with ZSK 16513    │                                     │ for rhybar.cz. with ZSK 5172 (expired)   │
+├────┼──────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────┤
+│  7 │                                          │                                     │ rhybar.cz. zone: Could not validate NSEC │
+│    │                                          │                                     │ for rhybar.cz. with ZSK 5172 (expired)   │
+╘════╧══════════════════════════════════════════╧═════════════════════════════════════╧══════════════════════════════════════════╛
 ```

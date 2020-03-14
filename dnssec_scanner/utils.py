@@ -80,15 +80,10 @@ class Zone:
         self.parent: Zone = parent
         self.DNSKEY: Optional[dns.rrset.RRset] = None
         self.DNSKEY_RRSIG: Optional[dns.rrset.RRset] = None
+        self.trusted_DS: List[dns.rrset.RRset] = []
+        self.untrusted_DS: List[dns.rrset.RRset] = []
         self.RR: Optional[dns.rrset.RRset] = None
-        self.RR_type: str = ""
-        self.RR_RRSIG: Optional[dns.rrset.RRset] = None
         self.child_name: str = ""
-
-    def compute(self):
-        self.RR_type = dns.rdatatype._by_value[
-            self.RR.rdtype if isinstance(self.RR, dns.rrset.RRset) else self.RR
-        ]
 
     def __str__(self):
         return f"{self.name} @{self.ip}"
@@ -146,20 +141,29 @@ def get_rrsig(rrsigs: dns.rrset.RRset, key):
     return None
 
 
-def algorithm_hash_function(algo: Optional[int, str]) -> str:
-    algo_str = algo
-    if type(algo) != str:
-        algo_str = dns.dnssec._algorithm_by_value[algo]
-    if "MD5" in algo_str:
-        return "MD5"
-    elif "SHA1" in algo_str:
+def get_ds_by_dnskey(
+        rrsets: List[dns.rrset.RRset], ksk: dns.rdtypes.ANY.DNSKEY
+) -> List[Tuple[str, dns.rrset.RRset]]:
+    key_tag = dns.dnssec.key_id(ksk)
+    result = []
+    for rrset in rrsets:
+        if rrset.rdtype == dns.rdatatype.DS:
+            for ds in rrset.items:
+                if ds.key_tag == key_tag:
+                    result.append((str(rrset.name), ds))
+    return result
+
+
+def digest_algorithm(algo: int) -> str:
+    """
+    Source: https://tools.ietf.org/html/rfc4509#section-5
+    :param algo:
+    :return:
+    """
+    if algo == 1:
         return "SHA1"
-    elif "SHA256" in algo_str:
+    elif algo == 2:
         return "SHA256"
-    elif "SHA386" in algo_str:
-        return "SHA386"
-    elif "SHA512" in algo_str:
-        return "SHA512"
     return ""
 
 

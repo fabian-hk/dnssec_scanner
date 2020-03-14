@@ -3,10 +3,16 @@ import logging
 
 import dns
 import dns.resolver
+import requests
+from xml.etree import ElementTree
+import dateutil
+from dateutil.parser import parse
+import datetime
 
 from dnssec_scanner.dnssec_validation import (
     validate_zone,
     validate_rrset,
+    validate_ds,
     proof_none_existence,
 )
 from dnssec_scanner.utils import DNSSECScannerResult, Zone
@@ -24,7 +30,7 @@ class DNSSECScanner:
 
     def __init__(self, domain: str):
         self.domain = domain
-        self.root_zone = Zone(".", self.ROOT_ZONE[0], self.ROOT_ZONE[1], None)
+        self.root_zone = self.initialize_root_zone()
 
     def run_scan(self) -> DNSSECScannerResult:
         resolver = dns.resolver.Resolver()
@@ -79,11 +85,8 @@ class DNSSECScanner:
 
         response = utils.dns_query(next_zone_name, zone.ip, dns.rdatatype.DS)
 
-        zone.RR = [
-            utils.get_rr_by_type(response.answer, dns.rdatatype.DS),
-            utils.get_rr_by_type(response.answer, dns.rdatatype.RRSIG),
-        ]
-        if not zone.RR[0]:
+        zone.RR = response.answer
+        if not utils.get_rr_by_type(zone.RR, dns.rdatatype.DS):
             zone.RR = response.authority
             proof_none_existence(zone, result)
             msg = f"{zone.name} zone: No DS RR found for {zone.child_name}"
@@ -91,7 +94,7 @@ class DNSSECScanner:
             result.add_message(False, msg)
             result.compute_messages(False)
         else:
-            validate_rrset(zone, result)
+            validate_ds(zone, result)
 
         next_zone_domain = ns.items[0].to_text()
         next_zone_ip = resolver.query(next_zone_domain, "A").rrset.items[0].address
@@ -142,8 +145,36 @@ class DNSSECScanner:
 
         return output
 
+    def initialize_root_zone(self) -> Zone:
+        root_zone = Zone(".", self.ROOT_ZONE[0], self.ROOT_ZONE[1], None)
+        r = requests.get("https://data.iana.org/root-anchors/root-anchors.xml")
+        root = ElementTree.fromstring(r.content)
+        for el in root.findall("KeyDigest"):
+            now = datetime.datetime.now(dateutil.tz.tzutc())
+
+            valid_from = dateutil.parser.parse(el.get("validFrom"))
+
+            valid_until = datetime.datetime.now(dateutil.tz.tzutc())
+            if el.get("validUntil"):
+                valid_until = parse(el.get("validUntil"))
+
+            rrset = dns.rrset.from_text(
+                ".",
+                "-1",
+                dns.rdataclass.IN,
+                dns.rdatatype.DS,
+                f"{el.find('KeyTag').text} {el.find('Algorithm').text} {el.find('DigestType').text} {el.find('Digest').text.lower()}",
+            )
+
+            if valid_from < now <= valid_until:
+                root_zone.trusted_DS.append(rrset)
+            else:
+                root_zone.untrusted_DS.append(rrset)
+
+        return root_zone
+
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("www.ietf.org")
+    scanner = DNSSECScanner("rhybar.cz")
     res = scanner.run_scan()
     print(res)

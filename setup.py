@@ -19,5 +19,11 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.7",
-    install_requires=["dnspython", "tabulate", "dataclasses"],
+    install_requires=[
+        "dnspython",
+        "tabulate",
+        "dataclasses",
+        "pycryptodome",
+        "requests",
+    ],
 )

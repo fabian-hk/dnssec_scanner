@@ -40,51 +40,66 @@ def validate_ksks(
         result.add_message(False, msg)
         result.compute_messages(False)
 
-    # validate KSKs
+    # validate KSKs with trusted DS
     trusted_ksks = []
     untrusted_ksks = []
     for ksk in ksks:
         if zone.parent:
-            # we are in a sub-zone
-            ds_ = dns.dnssec.make_ds(
-                dns.name.from_text(zone.name),
-                ksk,
-                utils.algorithm_hash_function(ksk.algorithm),
-            )
-            trusted = False
-            for name, rr_ds in utils.get_rrs_by_type(zone.parent.RR, dns.rdatatype.DS):
-                for ds in rr_ds:
-                    if str(rr_ds.name) == zone.name and ds == ds_:
-                        msg = f"{zone.name} zone: KSK {ds_.key_tag} successfully validated"
-                        log.info(msg)
-                        result.add_message(True, msg)
-                        trusted = True
-            if trusted:
-                trusted_ksks.append(ksk)
-            else:
-                msg = f"{zone.name} zone: Could not validate KSK {ds_.key_tag}"
-                log.info(msg)
-                result.add_message(False, msg)
-                untrusted_ksks.append(ksk)
+            dss = utils.get_ds_by_dnskey(zone.parent.trusted_DS, ksk)
         else:
-            # we are in the root zone
-            ds_ = dns.dnssec.make_ds(".", ksk, "SHA256")
-            ksk_digest = ds_.digest.hex().upper()
+            dss = utils.get_ds_by_dnskey(zone.trusted_DS, ksk)
 
-            # TODO make full check with https://data.iana.org/root-anchors/root-anchors.xml
-            if (
-                ksk_digest
-                == "E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D"
-            ):
-                msg = f"{zone.name} zone: Found trusted root KSK {ds_.key_tag}"
-                log.info(msg)
-                result.add_message(True, msg)
-                trusted_ksks.append(ksk)
+        trusted = False
+        if dss:
+            for name, ds in dss:
+                ds_text = f"with trusted DS {ds.key_tag} {ds.algorithm} {ds.digest_type}"
+                ds_ = dns.dnssec.make_ds(
+                    dns.name.from_text(zone.name),
+                    ksk,
+                    utils.digest_algorithm(ds.digest_type),
+                )
+                if name == zone.name and ds == ds_:
+                    msg = f"{zone.name} zone: KSK {ds_.key_tag} successfully validated {ds_text}"
+                    log.info(msg)
+                    result.add_message(True, msg)
+                    trusted = True
+                else:
+                    msg = f"{zone.name} zone: Could not validated KSK {ds_.key_tag} {ds_text}"
+                    log.info(msg)
+                    result.add_message(False, msg)
+        else:
+            msg = f"{zone.name} zone: Could not find a DS RR set for KSK {dns.dnssec.key_id(ksk)}"
+            log.info(msg)
+            result.add_message(False, msg)
+
+        if trusted:
+            trusted_ksks.append(ksk)
+        else:
+            untrusted_ksks.append(ksk)
+
+            # try to validate the KSK with a untrusted DS RR set
+            if zone.parent:
+                dss = utils.get_ds_by_dnskey(zone.parent.untrusted_DS, ksk)
             else:
-                msg = f"{zone.name} zone: Untrusted root KSK {ds_.key_tag}"
-                log.info(msg)
-                result.add_message(False, msg)
-                untrusted_ksks.append(ksk)
+                dss = utils.get_ds_by_dnskey(zone.untrusted_DS, ksk)
+
+            if dss:
+                for name, ds in dss:
+                    ds_text = f"with untrusted DS {ds.key_tag} {ds.algorithm} {ds.digest_type}"
+                    ds_ = dns.dnssec.make_ds(
+                        dns.name.from_text(zone.name),
+                        ksk,
+                        utils.digest_algorithm(ds.digest_type),
+                    )
+                    if name == zone.name and ds == ds_:
+                        msg = f"{zone.name} zone: KSK {ds_.key_tag} successfully validated {ds_text}"
+                        log.info(msg)
+                        result.add_message(False, msg)
+                    else:
+                        msg = f"{zone.name} zone: Could not validated KSK {ds_.key_tag} {ds_text}"
+                        log.info(msg)
+                        result.add_message(False, msg)
+
     suc = result.compute_messages(False)
 
     if not suc:
@@ -191,6 +206,38 @@ def validate_zsks(
             msg = f"{zone.name} zone: RRSIG {rr_sig.key_tag} has no matching key"
             log.info(msg)
             result.warnings.append(msg)
+
+
+def validate_ds(zone: Zone, result: DNSSECScannerResult):
+    zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
+
+    for rr in zone.RR:
+        if rr.rdtype == dns.rdatatype.DS:
+            sigs = utils.get_rrsig_for_rr(zone.RR, rr)
+            if sigs:
+                for sig in sigs:
+                    try:
+                        dns.dnssec.validate_rrsig(
+                            rr, sig, {dns.name.from_text(zone.name): zsks},
+                        )
+                    except dns.dnssec.ValidationFailure as e:
+                        msg = f"{zone.name} zone: Could not validate DS for {rr.name} with ZSK {sig.key_tag} ({e})"
+                        log.info(msg)
+                        result.add_message(False, msg)
+                        zone.untrusted_DS.append(rr)
+                    else:
+                        msg = f"{zone.name} zone: {rr.name} DS record successfully validated with ZSK {sig.key_tag}"
+                        log.info(msg)
+                        result.add_message(True, msg)
+                        zone.trusted_DS.append(rr)
+
+            else:
+                msg = f"{zone.name} zone: Could not find RRSIG for DS"
+                log.info(msg)
+                result.add_message(False, msg)
+                zone.untrusted_DS.append(rr)
+
+    result.compute_messages(True)
 
 
 def validate_rrset(zone: Zone, result: DNSSECScannerResult) -> bool:

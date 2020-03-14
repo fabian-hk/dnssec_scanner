@@ -1,3 +1,5 @@
+dataclasses
 dnspython
 tabulate
-dataclasses
+pycryptodome
+requests
