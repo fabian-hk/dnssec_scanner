@@ -1,5 +1,8 @@
 dataclasses
 dnspython
 tabulate
-pycryptodome
+pycryptodome>=3.4
 requests
+validators
+python-dateutil
+ecdsa

@@ -9,12 +9,12 @@ import dateutil
 from dateutil.parser import parse
 import datetime
 
-from dnssec_scanner.dnssec_validation import (
+from dnssec_scanner.validation import (
     validate_zone,
     validate_rrset,
     validate_ds,
-    proof_none_existence,
 )
+from dnssec_scanner.nsec import proof_none_existence
 from dnssec_scanner.utils import DNSSECScannerResult, Zone
 from dnssec_scanner import utils
 
@@ -175,6 +175,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("rhybar.cz")
+    scanner = DNSSECScanner("www.ietf.org")
     res = scanner.run_scan()
     print(res)

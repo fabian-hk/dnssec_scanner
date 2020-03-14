@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="dnssec-scanner-fabian-hk",  # Replace with your own username
+    name="dnssec-scanner",  # Replace with your own username
     version="0.0.0",
     author="Fabian Hauck",
     author_email="hauckfabian@gmail.com",
@@ -23,7 +23,13 @@ setuptools.setup(
         "dnspython",
         "tabulate",
         "dataclasses",
-        "pycryptodome",
+        "pycryptodome>=3.4",
         "requests",
+        "validators",
+        "python-dateutil",
+        "ecdsa",
     ],
+    entry_points={
+        "console_scripts": ["dnssec-scanner=dnssec_scanner.cli_interface:main"]
+    },
 )
