@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 
 import logging
 import dns
@@ -54,7 +55,7 @@ def check_dnssec_support(zone: Zone, result: DNSSECScannerResult, validated: boo
         result.add_message(True, msg)
 
 
-def nsec3_hash(domain: str, salt: str, iterations: int, algo: int) -> str:
+def nsec3_hash(domain: str, salt: Optional[str, bytes], iterations: int, algo: int) -> str:
     """
     Hash calculation: https://tools.ietf.org/html/rfc5155#section-5
 
@@ -71,6 +72,8 @@ def nsec3_hash(domain: str, salt: str, iterations: int, algo: int) -> str:
     """
     if algo != 1:
         raise ValueError("Wrong hash algorithm (only SHA1 is supported)")
+
+    # TODO check salt lenght => must have even length
 
     b32_to_b32hex = str.maketrans(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", "0123456789ABCDEFGHIJKLMNOPQRSTUV"

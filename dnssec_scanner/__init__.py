@@ -56,7 +56,15 @@ class DNSSECScanner:
         response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.SOA)
 
         rrsets = response.answer + response.authority
-        if utils.get_rrs_by_type(rrsets, dns.rdatatype.SOA):
+
+        # RCODE 3 (NXDomain) means the domain name does not exist
+        # Source: https://tools.ietf.org/html/rfc6895#section-2.3
+        if response.rcode() == 3:
+            # Domain name does not exist. Validate with NSEC the integrity of the none-existence.
+            # TODO check none-existence
+            raise ValueError("Domain does not exist")
+        elif utils.get_rr_by_type(rrsets, dns.rdatatype.SOA):
+            # We are in the zone for the domain name.
             validate_zone(zone, result)
 
             rr_types = self.find_records(zone)
@@ -65,6 +73,7 @@ class DNSSECScanner:
             validate_rrset(zone, result)
             return result
         elif utils.get_rrs_by_type(rrsets, dns.rdatatype.CNAME):
+            # We have found a CNAME RR set so we have to start from the top again
             validate_zone(zone, result)
 
             zone.RR = rrsets
@@ -175,6 +184,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("www.ietf.org")
+    scanner = DNSSECScanner("google.com")
     res = scanner.run_scan()
     print(res)

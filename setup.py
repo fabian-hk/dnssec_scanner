@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="dnssec-scanner",  # Replace with your own username
+    name="dnssec-scanner",
     version="0.0.0",
     author="Fabian Hauck",
     author_email="hauckfabian@gmail.com",
