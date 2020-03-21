@@ -1,5 +1,5 @@
 dataclasses
-dnspython
+git+https://github.com/fabian-hk/dnspython.git@feature/nsec3-hash#egg=dnspython
 tabulate
 pycryptodome>=3.4
 requests

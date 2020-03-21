@@ -24,7 +24,7 @@ def proof_none_existence(zone: Zone, result: DNSSECScannerResult):
     validated = validate_rrset(zone, result)
     for name, nsec3s in utils.get_rrs_by_type(zone.RR, dns.rdatatype.NSEC3):
         for nsec3 in nsec3s:
-            domain_hash = nsec3_hash(
+            domain_hash = dns.dnssec.nsec3_hash(
                 zone.child_name, nsec3.salt, nsec3.iterations, nsec3.algorithm
             )
             current_domain_hash = name[0].decode("utf-8").upper()
@@ -73,22 +73,24 @@ def nsec3_hash(domain: str, salt: Optional[str, bytes], iterations: int, algo: i
     if algo != 1:
         raise ValueError("Wrong hash algorithm (only SHA1 is supported)")
 
-    # TODO check salt lenght => must have even length
-
     b32_to_b32hex = str.maketrans(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", "0123456789ABCDEFGHIJKLMNOPQRSTUV"
     )
 
     domain_encoded = dns.name.from_text(domain).canonicalize().to_wire()
+
     salt_encoded = salt
     if isinstance(salt, str):
-        salt_encoded = bytes.fromhex(salt)
+        if len(salt) % 2 == 0:
+            salt_encoded = bytes.fromhex(salt)
+        else:
+            raise ValueError("Invalid salt length")
 
     digest = hashlib.sha1(domain_encoded + salt_encoded).digest()
     for i in range(iterations):
         digest = hashlib.sha1(digest + salt_encoded).digest()
 
-    res = base64.b32encode(digest).decode("utf-8")
-    res = res.translate(b32_to_b32hex)
+    output = base64.b32encode(digest).decode("utf-8")
+    output = output.translate(b32_to_b32hex)
 
-    return res
+    return output

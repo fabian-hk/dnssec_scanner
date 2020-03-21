@@ -40,6 +40,17 @@ class NSEC3Hash(unittest.TestCase):
             hash = nsec.nsec3_hash(d[0], d[1], d[2], d[4])
             self.assertEqual(hash, d[3].upper(), f"Error {d}")
 
+    def test_hash_invalid_salt_length(self):
+        data = (
+            "example.com",
+            "9F1AB450CF71D",
+            0,
+            "qfo2sv6jaej4cm11a3npoorfrckdao2c",
+            1,
+        )
+        with self.assertRaises(ValueError):
+            hash = nsec.nsec3_hash(data[0], data[1], data[2], data[4])
+
 
 if __name__ == "__main__":
     unittest.main()

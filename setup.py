@@ -20,7 +20,7 @@ setuptools.setup(
     ],
     python_requires=">=3.7",
     install_requires=[
-        "dnspython",
+        "dnspython @ git+https://github.com/fabian-hk/dnspython.git@feature/nsec3-hash#egg=dnspython",
         "tabulate",
         "dataclasses",
         "pycryptodome>=3.4",

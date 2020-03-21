@@ -145,6 +145,7 @@ class DNSSECScanner:
             rrsets = utils.get_rrs_by_type(response.answer, rr)
             if rrsets:
                 output.extend(response.answer)
+            # TODO if RR does not exist check NSEC for RR types
 
             for name, rrset in rrsets:
                 # only for pretty printing
@@ -155,7 +156,7 @@ class DNSSECScanner:
         return output
 
     def initialize_root_zone(self) -> Zone:
-        root_zone = Zone(".", self.ROOT_ZONE[0], self.ROOT_ZONE[1], None)
+        zone = Zone("", "", "", None)
         r = requests.get("https://data.iana.org/root-anchors/root-anchors.xml")
         root = ElementTree.fromstring(r.content)
         for el in root.findall("KeyDigest"):
@@ -176,10 +177,11 @@ class DNSSECScanner:
             )
 
             if valid_from < now <= valid_until:
-                root_zone.trusted_DS.append(rrset)
+                zone.trusted_DS.append(rrset)
             else:
-                root_zone.untrusted_DS.append(rrset)
+                zone.untrusted_DS.append(rrset)
 
+        root_zone = Zone(".", self.ROOT_ZONE[0], self.ROOT_ZONE[1], zone)
         return root_zone
 
 

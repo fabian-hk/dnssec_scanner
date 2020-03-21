@@ -42,10 +42,7 @@ def validate_ksks(
     trusted_ksks = []
     untrusted_ksks = []
     for ksk in ksks:
-        if zone.parent:
-            dss = utils.get_ds_by_dnskey(zone.parent.trusted_DS, ksk)
-        else:
-            dss = utils.get_ds_by_dnskey(zone.trusted_DS, ksk)
+        dss = utils.get_ds_by_dnskey(zone.parent.trusted_DS, ksk)
 
         trusted = False
         if dss:
