@@ -25,6 +25,7 @@ class DNSSECScannerResult:
     def __init__(self, domain: str):
         self.domain = domain
         self.state = State.SECURE
+        self.note: str = ""
         self.info: List[str] = []
         self.warnings: List[str] = []
         self.errors: List[str] = []
@@ -59,6 +60,18 @@ class DNSSECScannerResult:
         self.tmp = {True: [], False: []}
         return True
 
+    def append_info(self, msg: str):
+        self.info.append(msg)
+        self.info = remove_dup(self.info)
+
+    def append_warning(self, msg: str):
+        self.warnings.append(msg)
+        self.warnings = remove_dup(self.warnings)
+
+    def append_errors(self, msg: str):
+        self.errors.append(msg)
+        self.errors = remove_dup(self.errors)
+
     def __str__(self):
         wrapper = TextWrapper(width=40, replace_whitespace=False)
         tmp_info = [wrapper.fill(t) for t in self.info]
@@ -67,7 +80,7 @@ class DNSSECScannerResult:
 
         res = {"Info": tmp_info, "Warnings": tmp_warn, "Errors": tmp_err}
         return (
-            f"\nDomain: {self.domain}, DNSSEC: {self.state}\n\n"
+            f"\nDomain: {self.domain}, DNSSEC: {self.state}, Note: {self.note}\n\n"
             f"{tabulate(res, headers='keys', tablefmt='fancy_grid', showindex='always')}"
         )
 
@@ -182,9 +195,9 @@ def nsec3_next_to_string(nsec3: dns.rdtypes.ANY.NSEC3):
     return base64.b32encode(nsec3.next).decode("utf-8").translate(b32_to_b32hex)
 
 
-def nsec3_window_to_array(nsec3: dns.rdtypes.ANY.NSEC3) -> Set[int]:
+def nsec_window_to_array(nsec: Optional[dns.rdtypes.ANY.NSEC, dns.rdtypes.ANY.NSEC3]) -> Set[int]:
     rrset_types = []
-    for window, bitmap in nsec3.windows:
+    for window, bitmap in nsec.windows:
         for i, b in enumerate(bitmap):
             for j in range(8):
                 if b & (0x80 >> j):

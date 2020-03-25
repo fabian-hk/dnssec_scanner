@@ -1,10 +1,11 @@
 import unittest
 
+from random import randint
+
 from dnssec_scanner import nsec
 
 
 class NSEC3Hash(unittest.TestCase):
-
     DATA = [
         # Source: https://tools.ietf.org/html/rfc5155#appendix-A
         ("example", "aabbccdd", 12, "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom", 1),
@@ -50,6 +51,48 @@ class NSEC3Hash(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             hash = nsec.nsec3_hash(data[0], data[1], data[2], data[4])
+
+
+class NSECCanonicalOrder(unittest.TestCase):
+    # Source: https://tools.ietf.org/html/rfc4034#section-6.1
+    DATA = (
+        (b"example"),
+        (b"a", b"example"),
+        (b"yljkjljk", b"a", b"example"),
+        (b"Z", b"a", b"example"),
+        (b"zABC", b"a", b"EXAMPLE"),
+        (b"z", b"example"),
+        (b"\001", b"z", b"example"),
+        (b"*", b"z", b"example"),
+        (b"\200", b"z", b"example"),
+    )
+
+    TEST_ORDER = [
+        (0, 1, -1),
+        (5, 6, -1),
+        (4, 5, -1),
+        (1, 1, 0),
+        (8, 8, 0),
+        (5, 4, 1),
+        (8, 3, 1),
+        (7, 6, 1),
+    ]
+
+    def test_order_function(self):
+        for test_order in self.TEST_ORDER:
+            order = nsec.compare_canonical_order(
+                self.DATA[test_order[0]], self.DATA[test_order[1]]
+            )
+            self.assertEqual(test_order[2], order, test_order)
+
+    def test_order_function_random(self):
+        for _ in range(1000):
+            i = randint(0, len(self.DATA) - 1)
+            j = randint(0, len(self.DATA) - 1)
+
+            result = (i > j) - (i < j)
+            order = nsec.compare_canonical_order(self.DATA[i], self.DATA[j])
+            self.assertEqual(result, order, f"{i}, {j}")
 
 
 if __name__ == "__main__":

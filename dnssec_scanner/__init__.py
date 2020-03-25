@@ -14,7 +14,7 @@ from dnssec_scanner.validation import (
     validate_rrset,
     validate_ds,
 )
-from dnssec_scanner.nsec import proof_none_existence
+from dnssec_scanner import nsec
 from dnssec_scanner.utils import DNSSECScannerResult, Zone
 from dnssec_scanner import utils
 
@@ -61,8 +61,10 @@ class DNSSECScanner:
         # Source: https://tools.ietf.org/html/rfc6895#section-2.3
         if response.rcode() == 3:
             # Domain name does not exist. Validate with NSEC the integrity of the none-existence.
-            # TODO check none-existence
-            raise ValueError("Domain does not exist")
+            result.note = "Domain name does not exist"
+            zone.RR = rrsets
+            nsec.proof_none_existence(zone, result, False)
+            return result
         elif utils.get_rr_by_type(rrsets, dns.rdatatype.SOA):
             # We are in the zone for the domain name.
             validate_zone(zone, result)
@@ -97,7 +99,7 @@ class DNSSECScanner:
         zone.RR = response.answer
         if not utils.get_rr_by_type(zone.RR, dns.rdatatype.DS):
             zone.RR = response.authority
-            proof_none_existence(zone, result)
+            nsec.proof_none_existence(zone, result, True)
             msg = f"{zone.name} zone: No DS RR found for {zone.child_name}"
             log.info(msg)
             result.add_message(False, msg)
@@ -186,6 +188,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("google.com")
+    scanner = DNSSECScanner("ajdfadjf.yes.com")
     res = scanner.run_scan()
     print(res)
