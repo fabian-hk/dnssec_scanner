@@ -187,6 +187,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("yes.com")
+    scanner = DNSSECScanner("djkfjals.www.ietf.org")
     res = scanner.run_scan()
     print(res)

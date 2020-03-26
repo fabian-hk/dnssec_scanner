@@ -47,7 +47,9 @@ def validate_ksks(
         trusted = False
         if dss:
             for name, ds in dss:
-                ds_text = f"with trusted DS {ds.key_tag} {ds.algorithm} {ds.digest_type}"
+                ds_text = (
+                    f"with trusted DS {ds.key_tag} {ds.algorithm} {ds.digest_type}"
+                )
                 ds_ = dns.dnssec.make_ds(
                     dns.name.from_text(zone.name),
                     ksk,
@@ -235,7 +237,9 @@ def validate_ds(zone: Zone, result: DNSSECScannerResult):
     result.compute_messages(True)
 
 
-def validate_rrset(zone: Zone, result: DNSSECScannerResult, save: Optional[bool] = False) -> bool:
+def validate_rrset(
+        zone: Zone, result: DNSSECScannerResult, save: Optional[bool] = False
+) -> bool:
     res = True
 
     # initialize DNSSECScannerResult note variable

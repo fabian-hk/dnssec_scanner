@@ -76,9 +76,17 @@ class DNSSECScannerResult:
     def __str__(self):
         width = 80
         wrapper = TextWrapper(width=width, replace_whitespace=False)
-        tmp_info = [wrapper.fill(t) for t in self.logs] if self.logs else ["Execution failed"]
-        tmp_warn = [wrapper.fill(t) for t in self.warnings] if self.warnings else ["All good ;)"]
-        tmp_err = [wrapper.fill(t) for t in self.errors] if self.errors else ["All good ;)"]
+        tmp_info = (
+            [wrapper.fill(t) for t in self.logs] if self.logs else ["Execution failed"]
+        )
+        tmp_warn = (
+            [wrapper.fill(t) for t in self.warnings]
+            if self.warnings
+            else ["All good ;)"]
+        )
+        tmp_err = (
+            [wrapper.fill(t) for t in self.errors] if self.errors else ["All good ;)"]
+        )
 
         logs = {expand_string("Logs", width): tmp_info}
         warnings = {expand_string("Warnings", width): tmp_warn}
@@ -199,25 +207,3 @@ def expand_string(s: str, width: int) -> str:
     for _ in range(l):
         s += " "
     return s
-
-
-def nsec3_next_to_string(nsec3: dns.rdtypes.ANY.NSEC3):
-    b32_to_b32hex = str.maketrans(
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", "0123456789ABCDEFGHIJKLMNOPQRSTUV"
-    )
-    return base64.b32encode(nsec3.next).decode("utf-8").translate(b32_to_b32hex)
-
-
-def nsec_window_to_array(
-        nsec: Optional[dns.rdtypes.ANY.NSEC, dns.rdtypes.ANY.NSEC3]
-) -> Set[int]:
-    rrset_types = []
-    for window, bitmap in nsec.windows:
-        for i, b in enumerate(bitmap):
-            for j in range(8):
-                if b & (0x80 >> j):
-                    rrset_types.append(window * 256 + i * 8 + j)
-                    print(f"Type: {dns.rdatatype.to_text(window * 256 + i * 8 + j)}")
-
-    rrset_types = set(rrset_types)
-    return rrset_types
