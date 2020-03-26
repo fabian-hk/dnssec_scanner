@@ -72,7 +72,7 @@ class DNSSECScanner:
             rr_types = self.find_records(zone)
             zone.RR = self.get_records(zone, result, rr_types)
 
-            validate_rrset(zone, result)
+            validate_rrset(zone, result, True)
             return result
         elif utils.get_rrs_by_type(rrsets, dns.rdatatype.CNAME):
             # We have found a CNAME RR set so we have to start from the top again
@@ -153,7 +153,6 @@ class DNSSECScanner:
                 # only for pretty printing
                 for entry in rrset.to_text().split("\n"):
                     log.info(f"Found DNS entry: {entry}")
-                result.rrsets.append(rrset)
 
         return output
 
@@ -188,6 +187,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("ajdfadjf.yes.com")
+    scanner = DNSSECScanner("yes.com")
     res = scanner.run_scan()
     print(res)

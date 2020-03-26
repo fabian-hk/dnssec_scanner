@@ -26,24 +26,25 @@ class DNSSECScannerResult:
         self.domain = domain
         self.state = State.SECURE
         self.note: str = ""
-        self.info: List[str] = []
+        self.logs: List[str] = []
         self.warnings: List[str] = []
         self.errors: List[str] = []
 
         self.tmp: Dict[bool, List[str]] = {True: [], False: []}
 
-        self.rrsets: List[dns.rrset.RRset] = []
+        self.secure_rrsets: List[dns.rrset.RRset] = []
+        self.insecure_rrsets: List[dns.rrset.RRset] = []
 
     def add_message(self, error: bool, msg: str):
         self.tmp[error].append(msg)
 
     def compute_messages(self, warn: bool) -> bool:
         # remove duplicates
-        self.info = remove_dup(self.info)
+        self.logs = remove_dup(self.logs)
         self.warnings = remove_dup(self.warnings)
         self.errors = remove_dup(self.errors)
 
-        self.info.extend(self.tmp[True])
+        self.logs.extend(self.tmp[True])
 
         if warn and self.tmp[True]:
             self.warnings.extend(self.tmp[False])
@@ -60,9 +61,9 @@ class DNSSECScannerResult:
         self.tmp = {True: [], False: []}
         return True
 
-    def append_info(self, msg: str):
-        self.info.append(msg)
-        self.info = remove_dup(self.info)
+    def append_log(self, msg: str):
+        self.logs.append(msg)
+        self.logs = remove_dup(self.logs)
 
     def append_warning(self, msg: str):
         self.warnings.append(msg)
@@ -73,15 +74,20 @@ class DNSSECScannerResult:
         self.errors = remove_dup(self.errors)
 
     def __str__(self):
-        wrapper = TextWrapper(width=40, replace_whitespace=False)
-        tmp_info = [wrapper.fill(t) for t in self.info]
-        tmp_warn = [wrapper.fill(t) for t in self.warnings]
-        tmp_err = [wrapper.fill(t) for t in self.errors]
+        width = 80
+        wrapper = TextWrapper(width=width, replace_whitespace=False)
+        tmp_info = [wrapper.fill(t) for t in self.logs] if self.logs else ["Execution failed"]
+        tmp_warn = [wrapper.fill(t) for t in self.warnings] if self.warnings else ["All good ;)"]
+        tmp_err = [wrapper.fill(t) for t in self.errors] if self.errors else ["All good ;)"]
 
-        res = {"Info": tmp_info, "Warnings": tmp_warn, "Errors": tmp_err}
+        logs = {expand_string("Logs", width): tmp_info}
+        warnings = {expand_string("Warnings", width): tmp_warn}
+        errors = {expand_string("Errors", width): tmp_err}
         return (
+            f"{tabulate(logs, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
+            f"{tabulate(warnings, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
+            f"{tabulate(errors, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
             f"\nDomain: {self.domain}, DNSSEC: {self.state}, Note: {self.note}\n\n"
-            f"{tabulate(res, headers='keys', tablefmt='fancy_grid', showindex='always')}"
         )
 
 
@@ -104,7 +110,7 @@ class Zone:
 
 def dns_query(domain: str, ip: str, type: int) -> dns.message.Message:
     request = dns.message.make_query(domain, type, want_dnssec=True, payload=16384)
-    return dns.query.udp(request, ip)
+    return dns.query.udp(request, ip, timeout=10)
 
 
 def get_rr_by_type(
@@ -188,6 +194,13 @@ def remove_dup(l: List[any]) -> List[any]:
     return r
 
 
+def expand_string(s: str, width: int) -> str:
+    l = width - len(s)
+    for _ in range(l):
+        s += " "
+    return s
+
+
 def nsec3_next_to_string(nsec3: dns.rdtypes.ANY.NSEC3):
     b32_to_b32hex = str.maketrans(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", "0123456789ABCDEFGHIJKLMNOPQRSTUV"
@@ -195,7 +208,9 @@ def nsec3_next_to_string(nsec3: dns.rdtypes.ANY.NSEC3):
     return base64.b32encode(nsec3.next).decode("utf-8").translate(b32_to_b32hex)
 
 
-def nsec_window_to_array(nsec: Optional[dns.rdtypes.ANY.NSEC, dns.rdtypes.ANY.NSEC3]) -> Set[int]:
+def nsec_window_to_array(
+        nsec: Optional[dns.rdtypes.ANY.NSEC, dns.rdtypes.ANY.NSEC3]
+) -> Set[int]:
     rrset_types = []
     for window, bitmap in nsec.windows:
         for i, b in enumerate(bitmap):

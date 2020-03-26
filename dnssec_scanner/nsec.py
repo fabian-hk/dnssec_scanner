@@ -33,12 +33,14 @@ def proof_none_existence(
     if nsec3s:
         validated &= nsec3_proof_of_none_existence(nsec3s, zone, result, check_ds)
 
-    if result.state == State.SECURE and check_ds:
+    if result.state == State.SECURE and check_ds and validated:
         result.state = State.INSECURE
+    elif result.state == State.SECURE and not validated:
+        result.state = State.BOGUS
 
     if validated and check_ds:
         msg = f"{zone.name} zone: Successfully proved that {zone.child_name} does not support DNSSEC"
-        result.append_info(msg)
+        result.append_log(msg)
     elif not validated and check_ds:
         msg = f"{zone.name} zone: Could not proof that {zone.child_name} does not support DNSSEC"
         result.append_errors(msg)
@@ -76,7 +78,7 @@ def nsec3_proof_of_none_existence(
     )
     if status:
         msg = f"{zone.name} zone: Found closest encloser {closest_encloser}"
-        result.append_info(msg)
+        result.append_log(msg)
     else:
         msg = f"{zone.name} zone: Could not find closest encloser for {qname.to_text()}"
         result.append_errors(msg)
@@ -86,7 +88,7 @@ def nsec3_proof_of_none_existence(
     status = check_next_closer_name(nsec3s, nsec3param.items[0], next_closer_name)
     if status:
         msg = f"{zone.name} zone: Found NSEC3 that covers the next closer name"
-        result.append_info(msg)
+        result.append_log(msg)
     else:
         msg = f"{zone.name} zone: Could not find a NSEC3 record that covers the next closer name"
         result.append_errors(msg)
@@ -157,7 +159,7 @@ def nsec_proof_of_none_existence(
         result: DNSSECScannerResult,
         check_ds: Optional[bool] = False,
 ) -> bool:
-    success = False
+    success = True
 
     qname = dns.name.from_text(result.domain)
 
@@ -168,20 +170,21 @@ def nsec_proof_of_none_existence(
         if compare_canonical_order(name, qname) == 0:
             if dns.rdatatype.DS not in utils.nsec_window_to_array(nsec):
                 msg = f"{zone.name} zone: Prove successful that the DS record does not exist"
-                result.add_message(True, msg)
-                success = True
+                result.append_log(msg)
             else:
                 msg = f"{zone.name} zone: DS record does exist"
-                result.add_message(False, msg)
+                result.append_errors(msg)
+                success = False
         else:
             msg = f"{zone.name} zone: NSEC owner name and QNAME is not the same"
-            result.add_message(False, msg)
-    elif len(nsecs) == 2 and not check_ds:
+            result.append_errors(msg)
+            success = False
+    else:
         # Prove that the domain name does not exist
         # Source: https://tools.ietf.org/html/rfc7129#section-5.3
-        count = 0
+        validated = {"w": False, "rr": False}
         for name, nsec in nsecs:
-            wildcard = dns.name.from_text(f"*.{name.to_text()}")
+            wildcard = dns.name.from_text(f"*.{name.to_text()[:-1]}")
 
             if (
                     compare_canonical_order(name, qname) == -1
@@ -191,8 +194,8 @@ def nsec_proof_of_none_existence(
                 msg = (
                     f"{zone.name} zone: Found NSEC that {result.domain} does not exist"
                 )
-                result.add_message(True, msg)
-                count += 1
+                result.append_log(msg)
+                validated["rr"] = True
             elif (
                     qname.is_subdomain(name)
                     and compare_canonical_order(name, wildcard) == -1
@@ -200,24 +203,22 @@ def nsec_proof_of_none_existence(
             ):
                 # check that there was no possible wildcard expansion
                 msg = f"{zone.name} zone: Found NSEC that no wildcard expansion for {result.domain} is possible"
-                result.add_message(True, msg)
-                count += 1
+                result.append_log(msg)
+                validated["w"] = True
             else:
                 msg = f"{zone.name} zone: Found useless NSEC for {result.domain}"
-                result.add_message(False, msg)
+                result.append_warning(msg)
 
-        if count != 2:
-            msg = f"{zone.name} zone: Failed to prove that the name {result.domain} does not exist"
-            result.add_message(False, msg)
-        else:
-            success = True
-    else:
-        msg = (
-            f"{zone.name} zone: Prove of none-existence failed for name {result.domain}"
-        )
-        result.add_message(False, msg)
+        if not validated["rr"]:
+            msg = f"{zone.name} zone: Could not find a NSEC that covers the name {result.domain}"
+            result.append_errors(msg)
+            success = False
 
-    result.compute_messages(True)
+        if not validated["w"]:
+            msg = f"{zone.name} zone: Could not validate that there is no wildcard for the name {result.domain}"
+            result.append_errors(msg)
+            success = False
+
     return success
 
 
@@ -265,15 +266,6 @@ def compare_canonical_order(name1: Tuple[bytes], name2: Tuple[bytes]) -> int:
         return -1
 
     return 0
-
-
-def check_dnssec_support(zone: Zone, result: DNSSECScannerResult, validated: bool):
-    if validated:
-        if result.state == State.SECURE:
-            result.state = State.INSECURE
-        msg = f"{zone.name} zone: {zone.child_name} does not support DNSSEC"
-        log.info(msg)
-        result.add_message(True, msg)
 
 
 def nsec3_hash(

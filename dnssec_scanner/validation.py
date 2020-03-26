@@ -134,7 +134,7 @@ def validate_zsks(
             result.add_message(False, msg)
     suc = result.compute_messages(True)
     if not suc:
-        msg = f"{zone.name} zones: Could not validated DNSKEY with a trusted KSK"
+        msg = f"{zone.name} zones: Could not validate DNSKEY with a trusted KSK"
         log.info(msg)
         result.errors.append(msg)
 
@@ -158,7 +158,7 @@ def validate_zsks(
                 if suc:
                     msg = f"{zone.name} zone: DNSKEY successfully validated with trusted KSK {key_id}"
                     log.info(msg)
-                    result.info.append(msg)
+                    result.logs.append(msg)
                 else:
                     msg = f"{zone.name} zone: DNSKEY successfully validated with untrusted KSK {key_id}"
                     log.info(msg)
@@ -187,7 +187,7 @@ def validate_zsks(
                     f"{zone.name} zone: DNSKEY successfully validated with ZSK {key_id}"
                 )
                 log.info(msg)
-                result.info.append(msg)
+                result.logs.append(msg)
 
     # check if there are RRSIGS that cannot be used with any key
     for rr_sig in zone.DNSKEY_RRSIG:
@@ -235,8 +235,12 @@ def validate_ds(zone: Zone, result: DNSSECScannerResult):
     result.compute_messages(True)
 
 
-def validate_rrset(zone: Zone, result: DNSSECScannerResult) -> bool:
+def validate_rrset(zone: Zone, result: DNSSECScannerResult, save: Optional[bool] = False) -> bool:
     res = True
+
+    # initialize DNSSECScannerResult note variable
+    if save:
+        result.note = "Found RR sets:"
 
     type_dict = dns.rdatatype._by_value
     type_dict[65534] = "TYPE65534"
@@ -247,6 +251,7 @@ def validate_rrset(zone: Zone, result: DNSSECScannerResult) -> bool:
         if rr.rdtype != dns.rdatatype.RRSIG and rr.rdtype != dns.rdatatype.DNSKEY:
             rr_txt = type_dict[rr.rdtype]
             sigs = utils.get_rrsig_for_rr(zone.RR, rr)
+            validated = False
             if sigs:
                 for sig in sigs:
                     try:
@@ -261,11 +266,24 @@ def validate_rrset(zone: Zone, result: DNSSECScannerResult) -> bool:
                         msg = f"{zone.name} zone: {rr.name} {rr_txt} record successfully validated with ZSK {sig.key_tag}"
                         log.info(msg)
                         result.add_message(True, msg)
+                        validated = True
                 result.compute_messages(True)
             else:
                 msg = f"{zone.name} zone: Could not find RRSIG for {rr_txt}"
                 log.info(msg)
                 result.add_message(False, msg)
-                res &= result.compute_messages(False)
+                result.compute_messages(False)
+
+            res &= validated
+            if save and validated:
+                result.secure_rrsets.append(rr)
+                result.note += f" {dns.rdatatype._by_value[rr.rdtype]} (s),"
+            elif save:
+                result.insecure_rrsets.append(rr)
+                result.note += f" {dns.rdatatype._by_value[rr.rdtype]} (i),"
+
+    # post processing of DNSSECScannerResult note variable for pretty printing
+    if save:
+        result.note = result.note[:-1]
 
     return res
