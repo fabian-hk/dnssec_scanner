@@ -6,7 +6,7 @@ import dns
 
 from . import utils
 from .utils import DNSSECScannerResult, Zone, Key
-from .messages import Message, Validator, Msg
+from .messages import Message, Validator, Msg, Types
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("dnssec_scanner")
@@ -18,92 +18,96 @@ def validate_zone(zone: Zone, result: DNSSECScannerResult):
         validate_zsks(zone, trusted_ksks, untrusted_ksks, result)
     else:
         if not zone.DNSKEY:
-            msg = f"{zone.name} zone: No DNSKEY found"
-            log.info(msg)
-            result.add_message(False, msg)
+            msg = Message(zone.name, "", dns.rdatatype.DNSKEY)
+            msg.set_not_found(Msg.NOT_FOUND)
+            result.errors.append(str(msg))
         if not zone.DNSKEY_RRSIG:
-            msg = f"{zone.name} zone: No DNSKEY RRSIG found"
-            log.info(msg)
-            result.add_message(False, msg)
-        result.compute_messages(False)
+            msg = Message(zone.name, "", dns.rdatatype.DNSKEY)
+            msg.set_not_found(Msg.RRSIG_NOT_FOUND)
+            result.errors.append(str(msg))
+        result.change_state(False)
 
 
 def validate_ksks(
-    zone: Zone, result: DNSSECScannerResult
+        zone: Zone, result: DNSSECScannerResult
 ) -> Tuple[List[dns.rdtypes.ANY.DNSKEY], List[dns.rdtypes.ANY.DNSKEY]]:
+    """
+    We consider the validation as successful if at least
+    one KSK can be validated with a trusted DS record.
+    :param zone:
+    :param result:
+    :return:
+    """
+    success = False
+
     ksks = utils.get_dnskey(zone.DNSKEY, Key.KSK)
 
     if not ksks:
-        msg = f"{zone.name} zone: No KSKs found"
-        log.info(msg)
-        result.add_message(False, msg)
-        result.compute_messages(False)
+        result.errors.append(f"{zone.name} zone: No KSKs found")
+        result.change_state(False)
 
     # validate KSKs with trusted DS
+    msgs = []  # type: List[Message]
     trusted_ksks = []
     untrusted_ksks = []
     for ksk in ksks:
         dss = utils.get_ds_by_dnskey(zone.parent.trusted_DS, ksk)
 
-        trusted = False
+        msg = Message(zone.name, "", f"{Types.KSK} {dns.dnssec.key_id(ksk)}")
         if dss:
             for name, ds in dss:
-                ds_text = (
-                    f"with trusted DS {ds.key_tag} {ds.algorithm} {ds.digest_type}"
-                )
                 ds_ = dns.dnssec.make_ds(
                     dns.name.from_text(zone.name),
                     ksk,
                     utils.digest_algorithm(ds.digest_type),
                 )
                 if name == zone.name and ds == ds_:
-                    msg = f"{zone.name} zone: KSK {ds_.key_tag} successfully validated {ds_text}"
-                    log.info(msg)
-                    result.add_message(True, msg)
-                    trusted = True
+                    msg.set_success(
+                        Validator.DS, f"{ds.key_tag} {ds.algorithm} {ds.digest_type}",
+                    )
                 else:
-                    msg = f"{zone.name} zone: Could not validated KSK {ds_.key_tag} {ds_text}"
-                    log.info(msg)
-                    result.add_message(False, msg)
+                    msg.add_warning(
+                        Validator.DS,
+                        f"{ds.key_tag} {ds.algorithm} {ds.digest_type}",
+                        Msg.VALIDATION_FAILURE,
+                    )
         else:
-            msg = f"{zone.name} zone: Could not find a DS RR set for KSK {dns.dnssec.key_id(ksk)}"
-            log.info(msg)
-            result.add_message(False, msg)
+            msg.set_not_found(Msg.DS_NOT_FOUND)
 
-        if trusted:
+        if msg:
             trusted_ksks.append(ksk)
         else:
             untrusted_ksks.append(ksk)
 
             # try to validate the KSK with a untrusted DS RR set
-            if zone.parent:
-                dss = utils.get_ds_by_dnskey(zone.parent.untrusted_DS, ksk)
-            else:
-                dss = utils.get_ds_by_dnskey(zone.untrusted_DS, ksk)
+            dss = utils.get_ds_by_dnskey(zone.parent.untrusted_DS, ksk)
 
             if dss:
                 for name, ds in dss:
-                    ds_text = f"with untrusted DS {ds.key_tag} {ds.algorithm} {ds.digest_type}"
                     ds_ = dns.dnssec.make_ds(
                         dns.name.from_text(zone.name),
                         ksk,
                         utils.digest_algorithm(ds.digest_type),
                     )
                     if name == zone.name and ds == ds_:
-                        msg = f"{zone.name} zone: KSK {ds_.key_tag} successfully validated {ds_text}"
-                        log.info(msg)
-                        result.add_message(False, msg)
+                        msg.add_warning(
+                            Validator.UNTRUSTED_DS,
+                            f"{ds.key_tag} {ds.algorithm} {ds.digest_type}",
+                            Msg.VALIDATED,
+                        )
                     else:
-                        msg = f"{zone.name} zone: Could not validated KSK {ds_.key_tag} {ds_text}"
-                        log.info(msg)
-                        result.add_message(False, msg)
+                        msg.add_warning(
+                            Validator.UNTRUSTED_DS,
+                            f"{ds.key_tag} {ds.algorithm} {ds.digest_type}",
+                            Msg.VALIDATION_FAILURE,
+                        )
+        msgs.append(msg)
 
-    suc = result.compute_messages(False)
+    success = result.compute_batch(msgs)
 
-    if not suc:
-        msg = f"{zone.name} zone: Could not validate any KSK"
-        log.info(msg)
-        result.errors.append(msg)
+    if not success:
+        result.errors.append(f"{zone.name} zone: Could not validate any KSK")
+        result.change_state(success)
 
     return trusted_ksks, untrusted_ksks
 
@@ -115,7 +119,10 @@ def validate_zsks(
     result: DNSSECScannerResult,
 ):
     # use trusted KSKs
+    msgs = []  # type: List[Message]
     for ksk in trusted_ksks:
+        msg = Message(zone.name, "", dns.rdatatype.DNSKEY)
+
         key_id = dns.dnssec.key_id(ksk)
         sig = utils.get_rrsig(zone.DNSKEY_RRSIG, ksk)
         if sig:
@@ -124,25 +131,28 @@ def validate_zsks(
                     zone.DNSKEY, sig, {dns.name.from_text(zone.name): [ksk]},
                 )
             except dns.dnssec.ValidationFailure as e:
-                msg = f"{zone.name} zones: Could not validate DNSKEY with trusted KSK {key_id} ({e})"
-                log.info(msg)
-                result.add_message(False, msg)
+                msg.add_warning(
+                    Validator.KSK, key_id, f"{Msg.VALIDATION_FAILURE} ({e})"
+                )
             else:
-                msg = f"{zone.name} zones: DNSKEY successfully validated with trusted KSK {key_id}"
-                log.info(msg)
-                result.add_message(True, msg)
+                msg.set_success(Validator.KSK, key_id)
         else:
-            msg = f"{zone.name} zones: No RRSIG for KSK {key_id}"
-            log.info(msg)
-            result.add_message(False, msg)
-    suc = result.compute_messages(True)
-    if not suc:
+            msg.set_not_found(Msg.RRSIG_NOT_FOUND)
+        msgs.append(msg)
+
+    success = result.compute_batch(msgs)
+
+    if not success:
         msg = f"{zone.name} zones: Could not validate DNSKEY with a trusted KSK"
-        log.info(msg)
         result.errors.append(msg)
+        result.change_state(success)
+        validator = Validator.UNTRUSTED_KSK
+    else:
+        validator = Validator.KSK
 
     # use untrusted KSKs
     for ksk in untrusted_ksks:
+        msg = Message(zone.name, "", dns.rdatatype.DNSKEY)
         key_id = dns.dnssec.key_id(ksk)
         sig = utils.get_rrsig(zone.DNSKEY_RRSIG, ksk)
         if sig:
@@ -151,29 +161,18 @@ def validate_zsks(
                     zone.DNSKEY, sig, {dns.name.from_text(zone.name): [ksk]},
                 )
             except dns.dnssec.ValidationFailure as e:
-                if suc:
-                    msg = f"{zone.name} zone: Could not validate DNSKEY with trusted KSK {key_id} ({e})"
-                else:
-                    msg = f"{zone.name} zone: Could not validate DNSKEY with untrusted KSK {key_id} ({e})"
-                log.info(msg)
-                result.warnings.append(msg)
+                msg.add_warning(validator, key_id, f"{Msg.VALIDATION_FAILURE} ({e})")
             else:
-                if suc:
-                    msg = f"{zone.name} zone: DNSKEY successfully validated with trusted KSK {key_id}"
-                    log.info(msg)
-                    result.logs.append(msg)
-                else:
-                    msg = f"{zone.name} zone: DNSKEY successfully validated with untrusted KSK {key_id}"
-                    log.info(msg)
-                    result.warnings.append(msg)
+                msg.set_success(validator, key_id)
+                msg.validated = success
         else:
-            msg = f"{zone.name} zones: No RRSIG for KSK {key_id}"
-            log.info(msg)
-            result.errors.append(msg)
+            msg.set_not_found(Msg.RRSIG_NOT_FOUND)
+        result.compute_message(msg)
 
     # use ZSKs
     zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
     for zsk in zsks:
+        msg = Message(zone.name, "", dns.rdatatype.DNSKEY)
         key_id = dns.dnssec.key_id(zsk)
         sig = utils.get_rrsig(zone.DNSKEY_RRSIG, zsk)
         if sig:
@@ -182,15 +181,12 @@ def validate_zsks(
                     zone.DNSKEY, sig, {dns.name.from_text(zone.name): [zsk]},
                 )
             except dns.dnssec.ValidationFailure as e:
-                msg = f"{zone.name} zone: Could not validate DNSKEY with ZSK {key_id} ({e})"
-                log.info(msg)
-                result.warnings.append(msg)
-            else:
-                msg = (
-                    f"{zone.name} zone: DNSKEY successfully validated with ZSK {key_id}"
+                msg.add_warning(
+                    Validator.ZSK, key_id, f"{Msg.VALIDATION_FAILURE} ({e})"
                 )
-                log.info(msg)
-                result.logs.append(msg)
+            else:
+                msg.set_success(Validator.ZSK, key_id)
+        result.compute_message(msg)
 
     # check if there are RRSIGS that cannot be used with any key
     for rr_sig in zone.DNSKEY_RRSIG:
@@ -202,15 +198,18 @@ def validate_zsks(
 
         if not suc:
             msg = f"{zone.name} zone: RRSIG {rr_sig.key_tag} has no matching key"
-            log.info(msg)
             result.warnings.append(msg)
 
 
-def validate_ds(zone: Zone, result: DNSSECScannerResult):
-    zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
+def validate_ds(zone: Zone, result: DNSSECScannerResult) -> bool:
+    success = (
+        False  # if one DS record can be validated we define the check as successful
+    )
 
+    zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
     for rr in zone.RR:
         if rr.rdtype == dns.rdatatype.DS:
+            msg = Message(zone.name, rr.name, rr.rdtype)
             sigs = utils.get_rrsig_for_rr(zone.RR, rr)
             if sigs:
                 for sig in sigs:
@@ -219,23 +218,23 @@ def validate_ds(zone: Zone, result: DNSSECScannerResult):
                             rr, sig, {dns.name.from_text(zone.name): zsks},
                         )
                     except dns.dnssec.ValidationFailure as e:
-                        msg = f"{zone.name} zone: Could not validate DS for {rr.name} with ZSK {sig.key_tag} ({e})"
-                        log.info(msg)
-                        result.add_message(False, msg)
+                        msg.add_warning(
+                            Validator.ZSK,
+                            sig.key_tag,
+                            f"{Msg.VALIDATION_FAILURE} ({e})",
+                        )
                         zone.untrusted_DS.append(rr)
                     else:
-                        msg = f"{zone.name} zone: {rr.name} DS record successfully validated with ZSK {sig.key_tag}"
-                        log.info(msg)
-                        result.add_message(True, msg)
+                        msg.set_success(Validator.ZSK, sig.key_tag)
                         zone.trusted_DS.append(rr)
-
             else:
-                msg = f"{zone.name} zone: Could not find RRSIG for DS"
-                log.info(msg)
-                result.add_message(False, msg)
+                msg.set_not_found(Msg.RRSIG_NOT_FOUND)
                 zone.untrusted_DS.append(rr)
 
-    result.compute_messages(True)
+            success |= result.compute_message(msg)
+
+    result.change_state(success)
+    return success
 
 
 def validate_rrset(
@@ -247,15 +246,12 @@ def validate_rrset(
     if save:
         result.note = "Found RR sets:"
 
-    type_dict = dns.rdatatype._by_value
-    type_dict[65534] = "TYPE65534"
-
     # Validate RRsets
     zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
     for rr in zone.RR:
         if rr.rdtype != dns.rdatatype.RRSIG and rr.rdtype != dns.rdatatype.DNSKEY:
             sigs = utils.get_rrsig_for_rr(zone.RR, rr)
-            new_msg = Message(False, zone.name, rr.name, rr.rdtype)
+            msg = Message(zone.name, rr.name, rr.rdtype)
             if sigs:
                 for sig in sigs:
                     try:
@@ -263,21 +259,25 @@ def validate_rrset(
                             rr, sig, {dns.name.from_text(zone.name): zsks},
                         )
                     except dns.dnssec.ValidationFailure as e:
-                        new_msg.add_warning(Validator.ZSK, sig.key_tag, f"{Msg.VALIDATION_FAILURE} ({e})")
+                        msg.add_warning(
+                            Validator.ZSK,
+                            sig.key_tag,
+                            f"{Msg.VALIDATION_FAILURE} ({e})",
+                        )
                     else:
-                        new_msg.set_msg(True, Validator.ZSK, sig.key_tag, Msg.VALIDATED)
+                        msg.set_success(Validator.ZSK, sig.key_tag)
             else:
-                new_msg.set_msg(False, "", -1, Msg.NOT_FOUND)
+                msg.set_not_found(Msg.RRSIG_NOT_FOUND)
 
-            result.compute_batch(new_msg)
-
-            res &= validated
-            if save and new_msg.log:
+            s = result.compute_message(msg)
+            result.change_state(s)
+            res &= s
+            if save and msg:
                 result.secure_rrsets.append(rr)
-                result.note += f" {dns.rdatatype._by_value[rr.rdtype]} (s),"
+                result.note += f" {dns.rdatatype.to_text(rr.rdtype)},"
             elif save:
                 result.insecure_rrsets.append(rr)
-                result.note += f" {dns.rdatatype._by_value[rr.rdtype]} (i),"
+                result.note += f" {dns.rdatatype.to_text(rr.rdtype)}*,"
 
     # post processing of DNSSECScannerResult note variable for pretty printing
     if save:

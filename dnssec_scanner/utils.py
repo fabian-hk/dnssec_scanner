@@ -1,12 +1,11 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Set, Tuple
+from typing import Optional, List, Tuple
 from enum import Enum
 from tabulate import tabulate
 from textwrap import TextWrapper
 from dataclasses import dataclass
 
 import dns
-import base64
 
 from .messages import Message
 
@@ -32,46 +31,42 @@ class DNSSECScannerResult:
         self.warnings: List[str] = []
         self.errors: List[str] = []
 
-        self.tmp: Dict[bool, List[str]] = {True: [], False: []}
-
         self.secure_rrsets: List[dns.rrset.RRset] = []
         self.insecure_rrsets: List[dns.rrset.RRset] = []
 
-        self.msgs: List[Message] = []
-
-    def compute_batch(self, new_msg: Message):
-        if new_msg.log:
+    def compute_message(self, new_msg: Message) -> bool:
+        if new_msg:
+            # everything okay
             self.logs.append(str(new_msg))
             self.warnings.extend([str(msg) for msg in new_msg.warnings])
+            return True
         else:
-            self.errors.append(str(new_msg))
+            # something went wrong
+            if new_msg.message:
+                self.errors.append(str(new_msg))
             self.errors.extend([str(msg) for msg in new_msg.warnings])
-
-    def add_message(self, error: bool, msg: str):
-        self.tmp[error].append(msg)
-
-    def compute_messages(self, warn: bool) -> bool:
-        # remove duplicates
-        self.logs = remove_dup(self.logs)
-        self.warnings = remove_dup(self.warnings)
-        self.errors = remove_dup(self.errors)
-
-        self.logs.extend(self.tmp[True])
-
-        if warn and self.tmp[True]:
-            self.warnings.extend(self.tmp[False])
-
-        if not self.tmp[True]:
-            self.errors.extend(self.tmp[False])
-
-            if self.state == State.SECURE and self.tmp[False]:
-                self.state = State.BOGUS
-
-            self.tmp = {True: [], False: []}
             return False
 
-        self.tmp = {True: [], False: []}
-        return True
+    def change_state(self, success: bool):
+        if not success and self.state == State.SECURE:
+            self.state = State.BOGUS
+
+    def compute_batch(self, msgs: List[Message]) -> bool:
+        success = False
+        for msg in msgs:
+            success |= bool(msg)
+
+        for msg in msgs:
+            if success:
+                if msg:
+                    self.logs.append(str(msg))
+                self.warnings.extend([str(m) for m in msg.warnings])
+            else:
+                if msg.message:
+                    self.errors.append(str(msg))
+                self.errors.extend([str(m) for m in msg.warnings])
+
+        return success
 
     def append_log(self, msg: str):
         self.logs.append(msg)
@@ -104,10 +99,11 @@ class DNSSECScannerResult:
         warnings = {expand_string("Warnings", width): tmp_warn}
         errors = {expand_string("Errors", width): tmp_err}
         return (
-            f"{tabulate(logs, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
+            f"\n{tabulate(logs, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
             f"{tabulate(warnings, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
             f"{tabulate(errors, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
-            f"\nDomain: {self.domain}, DNSSEC: {self.state}, Note: {self.note}\n\n"
+            f"\nDomain: {self.domain}, DNSSEC: {self.state}, Note: {self.note}\n"
+            f"* not protected\n"
         )
 
 
@@ -182,7 +178,7 @@ def get_rrsig(rrsigs: dns.rrset.RRset, key):
 
 def get_ds_by_dnskey(
         rrsets: List[dns.rrset.RRset], ksk: dns.rdtypes.ANY.DNSKEY
-) -> List[Tuple[str, dns.rrset.RRset]]:
+) -> List[Tuple[str, dns.rdtypes.ANY.DS]]:
     key_tag = dns.dnssec.key_id(ksk)
     result = []
     for rrset in rrsets:

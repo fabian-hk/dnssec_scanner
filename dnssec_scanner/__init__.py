@@ -17,6 +17,7 @@ from dnssec_scanner.validation import (
 from dnssec_scanner import nsec
 from dnssec_scanner.utils import DNSSECScannerResult, Zone
 from dnssec_scanner import utils
+from dnssec_scanner.messages import Message, Msg
 
 
 logging.basicConfig(level=logging.INFO)
@@ -45,7 +46,6 @@ class DNSSECScanner:
     def scan_zone(
         self, zone: Zone, result: DNSSECScannerResult, resolver: dns.resolver.Resolver,
     ) -> DNSSECScannerResult:
-        log.info(f"-------------------------------------")
         log.info(f"Entering {zone.name} zone")
 
         response = utils.dns_query(zone.name, zone.ip, dns.rdatatype.DNSKEY)
@@ -100,10 +100,10 @@ class DNSSECScanner:
         if not utils.get_rr_by_type(zone.RR, dns.rdatatype.DS):
             zone.RR = response.authority
             nsec.proof_none_existence(zone, result, True)
-            msg = f"{zone.name} zone: No DS RR found for {zone.child_name}"
-            log.info(msg)
-            result.add_message(False, msg)
-            result.compute_messages(False)
+            msg = Message(zone.name, zone.child_name, dns.rdatatype.DS)
+            msg.set_not_found(Msg.NOT_FOUND)
+            result.errors.append(str(msg))
+            result.change_state(False)
         else:
             validate_ds(zone, result)
 
@@ -130,7 +130,7 @@ class DNSSECScanner:
         response = dns.query.tcp(request, zone.ip)
 
         for rr in response.answer:
-            if rr.rdtype != dns.rdatatype.DNSKEY:
+            if rr.rdtype != dns.rdatatype.DNSKEY and rr.rdtype != dns.rdatatype.RRSIG:
                 rr_types.append(rr.rdtype)
 
         # remove duplicates
@@ -187,6 +187,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("djkfjals.www.ietf.org")
+    scanner = DNSSECScanner("www.ietf.org")
     res = scanner.run_scan()
     print(res)

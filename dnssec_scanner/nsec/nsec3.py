@@ -51,7 +51,7 @@ def nsec3_proof_of_none_existence(
     # check if the next closer name is covered by an NSEC3 record
     status = check_next_closer_name(nsec3s, nsec3param.items[0], next_closer_name)
     if status:
-        msg = f"{zone.name} zone: Found NSEC3 that covers the next closer name"
+        msg = f"{zone.name} zone: Found NSEC3 that covers the next closer name {next_closer_name}"
         result.append_log(msg)
     else:
         msg = f"{zone.name} zone: Could not find a NSEC3 record that covers the next closer name"

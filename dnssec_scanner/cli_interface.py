@@ -4,7 +4,7 @@ import logging
 
 from dnssec_scanner import DNSSECScanner
 
-logging.getLogger("dnssec_scanner").setLevel(logging.ERROR)
+logging.getLogger("dnssec_scanner").setLevel(logging.INFO)
 
 
 def main():
