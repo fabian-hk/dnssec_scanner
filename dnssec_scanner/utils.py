@@ -8,6 +8,8 @@ from dataclasses import dataclass
 import dns
 import base64
 
+from .messages import Message
+
 
 class Key(Enum):
     KSK = 257
@@ -34,6 +36,16 @@ class DNSSECScannerResult:
 
         self.secure_rrsets: List[dns.rrset.RRset] = []
         self.insecure_rrsets: List[dns.rrset.RRset] = []
+
+        self.msgs: List[Message] = []
+
+    def compute_batch(self, new_msg: Message):
+        if new_msg.log:
+            self.logs.append(str(new_msg))
+            self.warnings.extend([str(msg) for msg in new_msg.warnings])
+        else:
+            self.errors.append(str(new_msg))
+            self.errors.extend([str(msg) for msg in new_msg.warnings])
 
     def add_message(self, error: bool, msg: str):
         self.tmp[error].append(msg)

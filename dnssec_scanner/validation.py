@@ -6,6 +6,7 @@ import dns
 
 from . import utils
 from .utils import DNSSECScannerResult, Zone, Key
+from .messages import Message, Validator, Msg
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("dnssec_scanner")
@@ -253,9 +254,8 @@ def validate_rrset(
     zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
     for rr in zone.RR:
         if rr.rdtype != dns.rdatatype.RRSIG and rr.rdtype != dns.rdatatype.DNSKEY:
-            rr_txt = type_dict[rr.rdtype]
             sigs = utils.get_rrsig_for_rr(zone.RR, rr)
-            validated = False
+            new_msg = Message(False, zone.name, rr.name, rr.rdtype)
             if sigs:
                 for sig in sigs:
                     try:
@@ -263,23 +263,16 @@ def validate_rrset(
                             rr, sig, {dns.name.from_text(zone.name): zsks},
                         )
                     except dns.dnssec.ValidationFailure as e:
-                        msg = f"{zone.name} zone: Could not validate {rr_txt} for {rr.name} with ZSK {sig.key_tag} ({e})"
-                        log.info(msg)
-                        result.add_message(False, msg)
+                        new_msg.add_warning(Validator.ZSK, sig.key_tag, f"{Msg.VALIDATION_FAILURE} ({e})")
                     else:
-                        msg = f"{zone.name} zone: {rr.name} {rr_txt} record successfully validated with ZSK {sig.key_tag}"
-                        log.info(msg)
-                        result.add_message(True, msg)
-                        validated = True
-                result.compute_messages(True)
+                        new_msg.set_msg(True, Validator.ZSK, sig.key_tag, Msg.VALIDATED)
             else:
-                msg = f"{zone.name} zone: Could not find RRSIG for {rr_txt}"
-                log.info(msg)
-                result.add_message(False, msg)
-                result.compute_messages(False)
+                new_msg.set_msg(False, "", -1, Msg.NOT_FOUND)
+
+            result.compute_batch(new_msg)
 
             res &= validated
-            if save and validated:
+            if save and new_msg.log:
                 result.secure_rrsets.append(rr)
                 result.note += f" {dns.rdatatype._by_value[rr.rdtype]} (s),"
             elif save:
