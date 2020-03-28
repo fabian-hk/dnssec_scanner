@@ -42,20 +42,20 @@ def nsec3_proof_of_none_existence(
     )
     if status:
         msg = f"{zone.name} zone: Found closest encloser {closest_encloser}"
-        result.append_log(msg)
+        result.logs.append(msg)
     else:
         msg = f"{zone.name} zone: Could not find closest encloser for {qname.to_text()}"
-        result.append_errors(msg)
+        result.errors.append(msg)
     success &= status
 
     # check if the next closer name is covered by an NSEC3 record
     status = check_next_closer_name(nsec3s, nsec3param.items[0], next_closer_name)
     if status:
         msg = f"{zone.name} zone: Found NSEC3 that covers the next closer name {next_closer_name}"
-        result.append_log(msg)
+        result.logs.append(msg)
     else:
         msg = f"{zone.name} zone: Could not find a NSEC3 record that covers the next closer name"
-        result.append_errors(msg)
+        result.errors.append(msg)
     success &= status
 
     if not check_ds:

@@ -25,14 +25,14 @@ def nsec_proof_of_none_existence(
         if nsec_utils.compare_canonical_order(name, qname) == 0:
             if dns.rdatatype.DS not in nsec_utils.nsec_window_to_array(nsec):
                 msg = f"{zone.name} zone: Prove successful that the DS record does not exist"
-                result.append_log(msg)
+                result.logs.append(msg)
             else:
                 msg = f"{zone.name} zone: DS record does exist"
-                result.append_errors(msg)
+                result.errors.append(msg)
                 success = False
         else:
             msg = f"{zone.name} zone: NSEC owner name and QNAME is not the same"
-            result.append_errors(msg)
+            result.errors.append(msg)
             success = False
     else:
         # Prove that the domain name does not exist
@@ -49,7 +49,7 @@ def nsec_proof_of_none_existence(
                 msg = (
                     f"{zone.name} zone: Found NSEC that {result.domain} does not exist"
                 )
-                result.append_log(msg)
+                result.logs.append(msg)
                 validated["rr"] = True
             elif (
                     qname.is_subdomain(name)
@@ -59,20 +59,20 @@ def nsec_proof_of_none_existence(
             ):
                 # check that there was no possible wildcard expansion
                 msg = f"{zone.name} zone: Found NSEC that no wildcard expansion for {result.domain} is possible"
-                result.append_log(msg)
+                result.logs.append(msg)
                 validated["w"] = True
             else:
                 msg = f"{zone.name} zone: Found useless NSEC for {result.domain}"
-                result.append_warning(msg)
+                result.warnings.append(msg)
 
         if not validated["rr"]:
             msg = f"{zone.name} zone: Could not find a NSEC that covers the name {result.domain}"
-            result.append_errors(msg)
+            result.errors.append(msg)
             success = False
 
         if not validated["w"]:
             msg = f"{zone.name} zone: Could not validate that there is no wildcard for the name {result.domain}"
-            result.append_errors(msg)
+            result.errors.append(msg)
             success = False
 
     return success

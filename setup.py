@@ -30,6 +30,6 @@ setuptools.setup(
         "ecdsa",
     ],
     entry_points={
-        "console_scripts": ["dnssec-scanner=dnssec_scanner.cli_interface:main"]
+        "console_scripts": ["dnssec-scanner=dnssec_scanner.cli:main"]
     },
 )

@@ -1,13 +1,17 @@
 from __future__ import annotations
 from typing import Optional, List, Tuple
 from enum import Enum
-from tabulate import tabulate
-from textwrap import TextWrapper
 from dataclasses import dataclass
 
+from tabulate import tabulate
+from textwrap import TextWrapper
 import dns
+import logging
 
 from .messages import Message
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("dnssec_scanner")
 
 
 class Key(Enum):
@@ -68,18 +72,6 @@ class DNSSECScannerResult:
 
         return success
 
-    def append_log(self, msg: str):
-        self.logs.append(msg)
-        self.logs = remove_dup(self.logs)
-
-    def append_warning(self, msg: str):
-        self.warnings.append(msg)
-        self.warnings = remove_dup(self.warnings)
-
-    def append_errors(self, msg: str):
-        self.errors.append(msg)
-        self.errors = remove_dup(self.errors)
-
     def __str__(self):
         width = 80
         wrapper = TextWrapper(width=width, replace_whitespace=False)
@@ -124,9 +116,17 @@ class Zone:
         return f"{self.name} @{self.ip}"
 
 
-def dns_query(domain: str, ip: str, type: int) -> dns.message.Message:
-    request = dns.message.make_query(domain, type, want_dnssec=True, payload=16384)
-    return dns.query.udp(request, ip, timeout=10)
+def dns_query(
+        domain: str, ip: str, type: int, tries: Optional[int] = 0
+) -> dns.message.Message:
+    try:
+        request = dns.message.make_query(domain, type, want_dnssec=True, payload=16384)
+        return dns.query.udp(request, ip, timeout=1)
+    except TimeoutError as e:
+        log.warning("Query timeout")
+        if tries < 5:
+            dns_query(domain, ip, type, tries + 1)
+        raise e
 
 
 def get_rr_by_type(
@@ -200,14 +200,6 @@ def digest_algorithm(algo: int) -> str:
     elif algo == 2:
         return "SHA256"
     return ""
-
-
-def remove_dup(l: List[any]) -> List[any]:
-    r = []
-    for i in l:
-        if i not in r:
-            r.append(i)
-    return r
 
 
 def expand_string(s: str, width: int) -> str:

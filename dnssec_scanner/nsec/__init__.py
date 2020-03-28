@@ -36,9 +36,9 @@ def proof_none_existence(
 
     if validated and check_ds:
         msg = f"{zone.name} zone: Successfully proved that {zone.child_name} does not support DNSSEC"
-        result.append_log(msg)
+        result.logs.append(msg)
     elif not validated and check_ds:
         msg = f"{zone.name} zone: Could not proof that {zone.child_name} does not support DNSSEC"
-        result.append_errors(msg)
+        result.errors.append(msg)
 
     return validated

@@ -123,6 +123,11 @@ class DNSSECScanner:
             dns.rdatatype.AAAA,
             dns.rdatatype.MX,
             dns.rdatatype.CNAME,
+            dns.rdatatype.PTR,
+            dns.rdatatype.WKS,
+            dns.rdatatype.HINFO,
+            dns.rdatatype.MINFO,
+            dns.rdatatype.TXT,
         ]
 
         # ask with ANY for all existing records

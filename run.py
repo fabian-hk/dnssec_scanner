@@ -1,4 +1,4 @@
-from dnssec_scanner.cli_interface import main
+from dnssec_scanner.cli import main
 
 if __name__ == "__main__":
     main()
