@@ -49,12 +49,12 @@ def nsec3_proof_of_none_existence(
     success &= status
 
     # check if the next closer name is covered by an NSEC3 record
-    status = check_next_closer_name(nsec3s, nsec3param.items[0], next_closer_name)
+    status = check_name_cover(nsec3s, nsec3param.items[0], next_closer_name)
     if status:
         msg = f"{zone.name} zone: Found NSEC3 that covers the next closer name {next_closer_name}"
         result.logs.append(msg)
     else:
-        msg = f"{zone.name} zone: Could not find a NSEC3 record that covers the next closer name"
+        msg = f"{zone.name} zone: Could not find a NSEC3 record that covers the next closer name {next_closer_name}"
         result.errors.append(msg)
     success &= status
 
@@ -62,8 +62,13 @@ def nsec3_proof_of_none_existence(
         # Proof "Three to Tango" to show that the domain name does not exist.
         # The only missing part is to show that no wildcard expansion could be used.
         # Source: https://tools.ietf.org/html/rfc7129#section-5.6
-        # TODO Three to Tango
-        pass
+        success = check_name_cover(nsec3s, nsec3param.items[0], f"*.{closest_encloser}")
+        if success:
+            msg = f"{zone.name} zone: Found NSEC3 that covers the wildcard *.{closest_encloser}"
+            result.logs.append(msg)
+        else:
+            msg = f"{zone.name} zone: Could not find a NSEC3 record that covers the  wildcard *.{closest_encloser}"
+            result.errors.append(msg)
 
     return success
 
@@ -73,6 +78,15 @@ def find_closest_encloser(
         nsec3param: dns.rdtypes.ANY.NSEC3PARAM,
         qname: dns.name.Name,
 ) -> Tuple[bool, str, str]:
+    """
+    This method tries to finds the closest encloser by chopping of
+    labels of the QNAME until there is a NSEC3 for the hash value.
+
+    :param nsec3s:
+    :param nsec3param:
+    :param qname:
+    :return:
+    """
     l = len(qname) - 1
 
     tmp = [t.decode() for t in qname]
@@ -99,19 +113,28 @@ def find_closest_encloser(
     return False, closest_encloser, next_closer_name
 
 
-def check_next_closer_name(
+def check_name_cover(
         nsec3s: List[dns.rdtypes.ANY.NSEC3],
         nsec3param: dns.rdtypes.ANY.NSEC3PARAM,
-        next_closer_name: str,
+        name: str,
 ) -> bool:
-    next_closer_name_hash = dns.dnssec.nsec3_hash(
-        next_closer_name, nsec3param.salt, nsec3param.iterations, nsec3param.algorithm,
+    """
+    This method checks if a name is covered by a NSEC3 record by hashing it
+    and comparing it to all NSEC3s in the nsec3s list.
+
+    :param nsec3s:
+    :param nsec3param:
+    :param next_closer_name:
+    :return:
+    """
+    name_hash = dns.dnssec.nsec3_hash(
+        name, nsec3param.salt, nsec3param.iterations, nsec3param.algorithm,
     )
 
     for name, nsec3 in nsec3s:
         current_name_hash = name[0].decode("utf-8").upper()
         next_name_hash = nsec_utils.nsec3_next_to_string(nsec3.items[0])
-        if current_name_hash < next_closer_name_hash < next_name_hash:
+        if current_name_hash < name_hash < next_name_hash:
             return True
 
     return False

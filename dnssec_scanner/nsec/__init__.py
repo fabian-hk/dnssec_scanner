@@ -22,12 +22,17 @@ def proof_none_existence(
     validated = validate_rrset(zone, result)
 
     nsecs = utils.get_rrs_by_type(zone.RR, dns.rdatatype.NSEC)
+    nsec3s = utils.get_rrs_by_type(zone.RR, dns.rdatatype.NSEC3)
+
+    # try to proof the non-existence with either NSEC or NSEC3
     if nsecs:
         validated &= nsec.nsec_proof_of_none_existence(nsecs, zone, result, check_ds)
-
-    nsec3s = utils.get_rrs_by_type(zone.RR, dns.rdatatype.NSEC3)
-    if nsec3s:
+    elif nsec3s:
         validated &= nsec3.nsec3_proof_of_none_existence(nsec3s, zone, result, check_ds)
+    else:
+        msg = f"{zone.name} zone: Could not find any NSEC or NSEC3 record"
+        result.errors.append(msg)
+        validated = False
 
     if result.state == State.SECURE and check_ds and validated:
         result.state = State.INSECURE
