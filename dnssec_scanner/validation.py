@@ -53,7 +53,7 @@ def validate_ksks(
     for ksk in ksks:
         dss = utils.get_ds_by_dnskey(zone.parent.trusted_DS, ksk)
 
-        msg = Message(zone.name, "", f"{Types.KSK} {dns.dnssec.key_id(ksk)}")
+        msg = Message(zone.name, "", Types.KSK, type_id=dns.dnssec.key_id(ksk))
         if dss:
             for name, ds in dss:
                 ds_ = dns.dnssec.make_ds(
@@ -62,15 +62,9 @@ def validate_ksks(
                     utils.digest_algorithm(ds.digest_type),
                 )
                 if name == zone.name and ds == ds_:
-                    msg.set_success(
-                        Validator.DS, f"{ds.key_tag} {ds.algorithm} {ds.digest_type}",
-                    )
+                    msg.set_success(Validator.DS, ds.key_tag)
                 else:
-                    msg.add_warning(
-                        Validator.DS,
-                        f"{ds.key_tag} {ds.algorithm} {ds.digest_type}",
-                        Msg.VALIDATION_FAILURE,
-                    )
+                    msg.add_warning(Validator.DS, ds.key_tag, Msg.VALIDATION_FAILURE)
         else:
             msg.set_not_found(Msg.DS_NOT_FOUND)
 
@@ -91,15 +85,11 @@ def validate_ksks(
                     )
                     if name == zone.name and ds == ds_:
                         msg.add_warning(
-                            Validator.UNTRUSTED_DS,
-                            f"{ds.key_tag} {ds.algorithm} {ds.digest_type}",
-                            Msg.VALIDATED,
+                            Validator.UNTRUSTED_DS, ds.key_tag, Msg.VALIDATED
                         )
                     else:
                         msg.add_warning(
-                            Validator.UNTRUSTED_DS,
-                            f"{ds.key_tag} {ds.algorithm} {ds.digest_type}",
-                            Msg.VALIDATION_FAILURE,
+                            Validator.UNTRUSTED_DS, ds.key_tag, Msg.VALIDATION_FAILURE
                         )
         msgs.append(msg)
 
@@ -121,7 +111,7 @@ def validate_zsks(
     # use trusted KSKs
     msgs = []  # type: List[Message]
     for ksk in trusted_ksks:
-        msg = Message(zone.name, "", dns.rdatatype.DNSKEY)
+        msg = Message(zone.name, "", dns.rdatatype.DNSKEY, zone.DNSKEY)
 
         key_id = dns.dnssec.key_id(ksk)
         sig = utils.get_rrsig(zone.DNSKEY_RRSIG, ksk)
@@ -152,7 +142,7 @@ def validate_zsks(
 
     # use untrusted KSKs
     for ksk in untrusted_ksks:
-        msg = Message(zone.name, "", dns.rdatatype.DNSKEY)
+        msg = Message(zone.name, "", dns.rdatatype.DNSKEY, zone.DNSKEY)
         key_id = dns.dnssec.key_id(ksk)
         sig = utils.get_rrsig(zone.DNSKEY_RRSIG, ksk)
         if sig:
@@ -172,7 +162,7 @@ def validate_zsks(
     # use ZSKs
     zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
     for zsk in zsks:
-        msg = Message(zone.name, "", dns.rdatatype.DNSKEY)
+        msg = Message(zone.name, "", dns.rdatatype.DNSKEY, zone.DNSKEY)
         key_id = dns.dnssec.key_id(zsk)
         sig = utils.get_rrsig(zone.DNSKEY_RRSIG, zsk)
         if sig:
@@ -209,7 +199,7 @@ def validate_ds(zone: Zone, result: DNSSECScannerResult) -> bool:
     zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
     for rr in zone.RR:
         if rr.rdtype == dns.rdatatype.DS:
-            msg = Message(zone.name, rr.name, rr.rdtype)
+            msg = Message(zone.name, rr.name, rr.rdtype, rr)
             sigs = utils.get_rrsig_for_rr(zone.RR, rr)
             if sigs:
                 for sig in sigs:
@@ -241,10 +231,7 @@ def validate_rrset(
         zone: Zone, result: DNSSECScannerResult, save: Optional[bool] = False
 ) -> bool:
     res = True
-
-    # initialize DNSSECScannerResult note variable
-    if save:
-        result.note = "Found RR sets:"
+    note = []
 
     # Validate RRsets
     zsks = utils.get_dnskey(zone.DNSKEY, Key.ZSK)
@@ -274,13 +261,13 @@ def validate_rrset(
             res &= s
             if save and msg:
                 result.secure_rrsets.append(rr)
-                result.note += f" {dns.rdatatype.to_text(rr.rdtype)},"
+                note.append(dns.rdatatype.to_text(rr.rdtype))
             elif save:
                 result.insecure_rrsets.append(rr)
-                result.note += f" {dns.rdatatype.to_text(rr.rdtype)}*,"
+                note.append(f"{dns.rdatatype.to_text(rr.rdtype)}*")
 
-    # post processing of DNSSECScannerResult note variable for pretty printing
+    # save overview over found RRs in DNSSECScannerResult note variable
     if save:
-        result.note = result.note[:-1]
+        result.note = f"Found RR sets: {', '.join(note)}"
 
     return res

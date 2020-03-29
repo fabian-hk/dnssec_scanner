@@ -29,6 +29,7 @@ class State(Enum):
 class DNSSECScannerResult:
     def __init__(self, domain: str):
         self.domain = domain
+        self.qname = domain
         self.state = State.SECURE
         self.note: str = ""
         self.logs: List[str] = []
@@ -87,14 +88,14 @@ class DNSSECScannerResult:
             [wrapper.fill(t) for t in self.errors] if self.errors else ["All good ;)"]
         )
 
-        logs = {expand_string("Logs", width): tmp_info}
+        logs = {expand_string("Log", width): tmp_info}
         warnings = {expand_string("Warnings", width): tmp_warn}
         errors = {expand_string("Errors", width): tmp_err}
         return (
             f"\n{tabulate(logs, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
             f"{tabulate(warnings, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
             f"{tabulate(errors, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
-            f"\nDomain: {self.domain}, DNSSEC: {self.state}, Note: {self.note}\n"
+            f"\nDomain: {self.qname}, DNSSEC: {self.state}, Note: {self.note}\n"
             f"* not protected\n"
         )
 
@@ -122,7 +123,7 @@ def dns_query(
     try:
         request = dns.message.make_query(domain, type, want_dnssec=True, payload=16384)
         return dns.query.udp(request, ip, timeout=1)
-    except TimeoutError as e:
+    except dns.exception.Timeout as e:
         log.warning("Query timeout")
         if tries < 5:
             dns_query(domain, ip, type, tries + 1)

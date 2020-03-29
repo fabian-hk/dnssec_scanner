@@ -1,7 +1,7 @@
 # Description
 
 This DNSSEC scanner aims to provide a detailed description
-of the DNSSEC domain validation. It returns error messages
+of the DNSSEC domain validation process. It returns error messages
 that can help to debug DNSSEC configuration.
 
 ## Features
@@ -9,6 +9,10 @@ that can help to debug DNSSEC configuration.
 2. Warns about misconfiguration
 3. Gives detailed error messages if the domain could not be
 validated
+4. Returns the protected and unprotected RR sets for the domain
+name as ``dns.rrset.RRset`` types from ``dnspython``
+5. Proof with NSEC or NSEC3 that a domain name does not exist
+as well as that DNSSEC is not available in a zone
 
 ## Mechanics
 - Starts at a root zone server and searches for an SOA record
@@ -45,53 +49,53 @@ $ dnssec-scanner www.ietf.org
 ## Output
 ```shell script
 ╒════╤════════════════════════════════════════════════════════════════════════════════════╕
-│    │ Logs                                                                               │
+│    │ Log                                                                                │
 ╞════╪════════════════════════════════════════════════════════════════════════════════════╡
-│  0 │ . zone: KSK 20326 successfully validated with trusted DS 20326 8 2                 │
+│  0 │ . zone: KSK 20326 record validated, using DS 20326                                 │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  1 │ . zones: DNSKEY successfully validated with trusted KSK 20326                      │
+│  1 │ . zone: DNSKEY 48903,33853,20326 record validated, using KSK 20326                 │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  2 │ . zone: org. DS record successfully validated with ZSK 33853                       │
+│  2 │ . zone: org. DS 9795,9795 record validated, using ZSK 33853                        │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  3 │ org. zone: KSK 9795 successfully validated with trusted DS 9795 7 1                │
+│  3 │ org. zone: KSK 9795 record validated, using DS 9795                                │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  4 │ org. zone: KSK 9795 successfully validated with trusted DS 9795 7 2                │
+│  4 │ org. zone: DNSKEY 33209,17883,37022,9795 record validated, using KSK 9795          │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  5 │ org. zones: DNSKEY successfully validated with trusted KSK 9795                    │
+│  5 │ org. zone: DNSKEY 33209,17883,37022,9795 record validated, using KSK 17883         │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  6 │ org. zone: DNSKEY successfully validated with trusted KSK 17883                    │
+│  6 │ org. zone: DNSKEY 33209,17883,37022,9795 record validated, using ZSK 33209         │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  7 │ org. zone: DNSKEY successfully validated with ZSK 33209                            │
+│  7 │ org. zone: ietf.org. DS 45586,45586 record validated, using ZSK 33209              │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  8 │ org. zone: ietf.org. DS record successfully validated with ZSK 33209               │
+│  8 │ ietf.org. zone: KSK 45586 record validated, using DS 45586                         │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│  9 │ ietf.org. zone: KSK 45586 successfully validated with trusted DS 45586 5 1         │
+│  9 │ ietf.org. zone: DNSKEY 40452,45586 record validated, using KSK 45586               │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 10 │ ietf.org. zone: KSK 45586 successfully validated with trusted DS 45586 5 2         │
+│ 10 │ ietf.org. zone: DNSKEY 40452,45586 record validated, using ZSK 40452               │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 11 │ ietf.org. zones: DNSKEY successfully validated with trusted KSK 45586              │
+│ 11 │ ietf.org. zone: www.ietf.org. CNAME record validated, using ZSK 40452              │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 12 │ ietf.org. zone: DNSKEY successfully validated with ZSK 40452                       │
+│ 12 │ . zone: KSK 20326 record validated, using DS 20326                                 │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 13 │ ietf.org. zone: www.ietf.org. CNAME record successfully validated with ZSK 40452   │
+│ 13 │ . zone: DNSKEY 48903,33853,20326 record validated, using KSK 20326                 │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 14 │ . zone: net. DS record successfully validated with ZSK 33853                       │
+│ 14 │ . zone: net. DS 35886 record validated, using ZSK 33853                            │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 15 │ net. zone: KSK 35886 successfully validated with trusted DS 35886 8 2              │
+│ 15 │ net. zone: KSK 35886 record validated, using DS 35886                              │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 16 │ net. zones: DNSKEY successfully validated with trusted KSK 35886                   │
+│ 16 │ net. zone: DNSKEY 35886,24512 record validated, using KSK 35886                    │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 17 │ net. zone: cloudflare.net. DS record successfully validated with ZSK 24512         │
+│ 17 │ net. zone: cloudflare.net. DS 2371 record validated, using ZSK 24512               │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 18 │ cloudflare.net. zone: KSK 2371 successfully validated with trusted DS 2371 13 2    │
+│ 18 │ cloudflare.net. zone: KSK 2371 record validated, using DS 2371                     │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 19 │ cloudflare.net. zones: DNSKEY successfully validated with trusted KSK 2371         │
+│ 19 │ cloudflare.net. zone: DNSKEY 2371,34505 record validated, using KSK 2371           │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 20 │ cloudflare.net. zone: www.ietf.org.cdn.cloudflare.net. A record successfully       │
-│    │ validated with ZSK 34505                                                           │
+│ 20 │ cloudflare.net. zone: www.ietf.org.cdn.cloudflare.net. A record validated, using   │
+│    │ ZSK 34505                                                                          │
 ├────┼────────────────────────────────────────────────────────────────────────────────────┤
-│ 21 │ cloudflare.net. zone: www.ietf.org.cdn.cloudflare.net. AAAA record successfully    │
-│    │ validated with ZSK 34505                                                           │
+│ 21 │ cloudflare.net. zone: www.ietf.org.cdn.cloudflare.net. AAAA record validated,      │
+│    │ using ZSK 34505                                                                    │
 ╘════╧════════════════════════════════════════════════════════════════════════════════════╛
 ╒════╤════════════════════════════════════════════════════════════════════════════════════╕
 │    │ Warnings                                                                           │
@@ -104,5 +108,10 @@ $ dnssec-scanner www.ietf.org
 │  0 │ All good ;)                                                                        │
 ╘════╧════════════════════════════════════════════════════════════════════════════════════╛
 
-Domain: www.ietf.org, DNSSEC: State.SECURE, Note: Found RR sets: A (s), AAAA (s)
+Domain: www.ietf.org, DNSSEC: State.SECURE, Note: Found RR sets: A, AAAA
+* not protected
 ```
+
+# Architecture overview
+
+![Architecture](doc/Architecture.svg)

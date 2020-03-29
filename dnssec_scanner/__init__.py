@@ -84,6 +84,7 @@ class DNSSECScanner:
             self.domain = str(
                 utils.get_rr_by_type(rrsets, dns.rdatatype.CNAME).items[0].target
             )
+            result.domain = self.domain
             return self.scan_zone(self.root_zone, result, resolver)
 
         response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.NS)
