@@ -126,8 +126,9 @@ def dns_query(
     except dns.exception.Timeout as e:
         log.warning("Query timeout")
         if tries < 5:
-            dns_query(domain, ip, type, tries + 1)
-        raise e
+            return dns_query(domain, ip, type, tries + 1)
+        else:
+            raise e
 
 
 def get_rr_by_type(
@@ -208,3 +209,12 @@ def expand_string(s: str, width: int) -> str:
     for _ in range(l):
         s += " "
     return s
+
+
+def remove_duplicates(list_var: List[any]) -> List[any]:
+    result = []
+    for el in list_var:
+        if el not in result:
+            result.append(el)
+
+    return result

@@ -44,7 +44,6 @@ class Message:
         self.type_name = rdtype
         self.type_id = ""
         if isinstance(rdtype, int):
-            self.type_name = dns.rdatatype.to_text(rdtype)
             self.type_id = self.get_type_ids(rdtype, rr)
 
         if type_id:
@@ -92,17 +91,23 @@ class Message:
         return ""
 
     def get_type_ids_ds(self, rr: dns.rrset.RRset) -> str:
-        description = [str(i.key_tag) for i in rr.items]
+        description = [i.key_tag for i in rr.items]
+        description.sort()
+        description = [str(d) for d in description]
         return ",".join(description)
 
     def get_type_ids_dnskey(self, rr: dns.rrset.RRset) -> str:
-        description = [str(dns.dnssec.key_id(key)) for key in rr]
+        description = [dns.dnssec.key_id(key) for key in rr]
+        description.sort()
+        description = [str(d) for d in description]
         return ",".join(description)
 
     def __str__(self):
         zone_name = f"{self.zone_name} zone:"
         owner_name = ""
         type_name = f" {self.type_name}"
+        if isinstance(self.type_name, int):
+            type_name = f" {dns.rdatatype.to_text(self.type_name)}"
         message = f" record{self.message}"
         validator = f""
 

@@ -114,4 +114,4 @@ Domain: www.ietf.org, DNSSEC: State.SECURE, Note: Found RR sets: A, AAAA
 
 # Architecture overview
 
-![Architecture](doc/Architecture.svg)
+![Architecture](docs/Architecture.svg)

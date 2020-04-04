@@ -133,7 +133,7 @@ def validate_zsks(
     success = result.compute_batch(msgs)
 
     if not success:
-        msg = f"{zone.name} zones: Could not validate DNSKEY with a trusted KSK"
+        msg = f"{zone.name} zone: Could not validate DNSKEY with a trusted KSK"
         result.errors.append(msg)
         result.change_state(success)
         validator = Validator.UNTRUSTED_KSK
@@ -151,7 +151,7 @@ def validate_zsks(
                     zone.DNSKEY, sig, {dns.name.from_text(zone.name): [ksk]},
                 )
             except dns.dnssec.ValidationFailure as e:
-                msg.add_warning(validator, key_id, f"{Msg.VALIDATION_FAILURE} ({e})")
+                msg.add_warning(validator, key_id, f"{Msg.VALIDATION_FAILURE} ({e})", zone.DNSKEY)
             else:
                 msg.set_success(validator, key_id)
                 msg.validated = success
@@ -172,7 +172,7 @@ def validate_zsks(
                 )
             except dns.dnssec.ValidationFailure as e:
                 msg.add_warning(
-                    Validator.ZSK, key_id, f"{Msg.VALIDATION_FAILURE} ({e})"
+                    Validator.ZSK, key_id, f"{Msg.VALIDATION_FAILURE} ({e})", zone.DNSKEY
                 )
             else:
                 msg.set_success(Validator.ZSK, key_id)

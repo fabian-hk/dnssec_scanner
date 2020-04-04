@@ -20,14 +20,16 @@ def qname_covered_by_nsec(
     return False
 
 
-def compare_canonical_order(name1: Tuple[bytes], name2: Tuple[bytes]) -> int:
+def compare_canonical_order(name1: dns.name.Name, name2: dns.name.Name) -> int:
     """
     returns 0 if both are equal
     returns -1 if name1 < name2
     returns 1 if name1 > name2
 
     :param name1:
+    :type name1: dns.name.Name
     :param name2:
+    :type name2: dns.name.Name
     """
     lower = bytes.maketrans(
         b"ABCDEFGHIJKLMNOPQRSTUVWXYZ", b"abcdefghijklmnopqrstuvwxyz"

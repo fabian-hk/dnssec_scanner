@@ -51,7 +51,7 @@ def nsec_proof_of_none_existence(
                 )
                 result.logs.append(msg)
                 validated["rr"] = True
-            elif (
+            if (
                     qname.is_subdomain(name)
                     and nsec_utils.compare_canonical_order(name, wildcard) == -1
                     and nsec_utils.compare_canonical_order(wildcard, nsec.items[0].next)
@@ -61,9 +61,6 @@ def nsec_proof_of_none_existence(
                 msg = f"{zone.name} zone: Found NSEC that no wildcard expansion for {result.domain} is possible"
                 result.logs.append(msg)
                 validated["w"] = True
-            else:
-                msg = f"{zone.name} zone: Found useless NSEC for {result.domain}"
-                result.warnings.append(msg)
 
         if not validated["rr"]:
             msg = f"{zone.name} zone: Could not find a NSEC that covers the name {result.domain}"

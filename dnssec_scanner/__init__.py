@@ -15,7 +15,7 @@ from dnssec_scanner.validation import (
     validate_ds,
 )
 from dnssec_scanner import nsec
-from dnssec_scanner.utils import DNSSECScannerResult, Zone
+from dnssec_scanner.utils import DNSSECScannerResult, Zone, State
 from dnssec_scanner import utils
 from dnssec_scanner.messages import Message, Msg
 
@@ -63,6 +63,7 @@ class DNSSECScanner:
             # Domain name does not exist. Validate with NSEC the integrity of the none-existence.
             result.note = "Domain name does not exist"
             zone.RR = rrsets
+            validate_zone(zone, result)
             nsec.proof_none_existence(zone, result, False)
             return result
         elif utils.get_rr_by_type(rrsets, dns.rdatatype.SOA):
@@ -193,6 +194,6 @@ class DNSSECScanner:
 
 
 if __name__ == "__main__":
-    scanner = DNSSECScanner("a.com")
+    scanner = DNSSECScanner("rhybar.cz")
     res = scanner.run_scan()
     print(res)

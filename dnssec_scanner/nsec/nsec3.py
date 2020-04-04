@@ -30,7 +30,7 @@ def nsec3_proof_of_none_existence(
 
     # query NSEC3 paramter from zone and validate them
     response = utils.dns_query(zone.name, zone.ip, dns.rdatatype.NSEC3PARAM)
-    zone.RR += response.answer
+    zone.RR = utils.remove_duplicates(response.answer)
     success &= validate_rrset(zone, result)
     nsec3param = utils.get_rr_by_type(zone.RR, dns.rdatatype.NSEC3PARAM)
 

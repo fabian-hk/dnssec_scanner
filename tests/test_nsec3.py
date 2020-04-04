@@ -1,8 +1,9 @@
 import unittest
 
 from random import randint
+import dns
 
-from dnssec_scanner import nsec
+from dnssec_scanner.nsec import nsec_utils
 
 
 class NSEC3Hash(unittest.TestCase):
@@ -38,7 +39,7 @@ class NSEC3Hash(unittest.TestCase):
 
     def test_hash_function(self):
         for d in self.DATA:
-            hash = nsec.nsec3_hash(d[0], d[1], d[2], d[4])
+            hash = nsec_utils.nsec3_hash(d[0], d[1], d[2], d[4])
             self.assertEqual(hash, d[3].upper(), f"Error {d}")
 
     def test_hash_invalid_salt_length(self):
@@ -50,21 +51,21 @@ class NSEC3Hash(unittest.TestCase):
             1,
         )
         with self.assertRaises(ValueError):
-            hash = nsec.nsec3_hash(data[0], data[1], data[2], data[4])
+            hash = nsec_utils.nsec3_hash(data[0], data[1], data[2], data[4])
 
 
 class NSECCanonicalOrder(unittest.TestCase):
     # Source: https://tools.ietf.org/html/rfc4034#section-6.1
     DATA = (
-        (b"example"),
-        (b"a", b"example"),
-        (b"yljkjljk", b"a", b"example"),
-        (b"Z", b"a", b"example"),
-        (b"zABC", b"a", b"EXAMPLE"),
-        (b"z", b"example"),
-        (b"\001", b"z", b"example"),
-        (b"*", b"z", b"example"),
-        (b"\200", b"z", b"example"),
+        dns.name.from_text(b"example"),
+        dns.name.from_text(b"a.example"),
+        dns.name.from_text(b"yljkjljk.a.example"),
+        dns.name.from_text(b"Z.a.example"),
+        dns.name.from_text(b"zABC.a.EXAMPLE"),
+        dns.name.from_text(b"z.example"),
+        dns.name.from_text(b"\001.z.example"),
+        dns.name.from_text(b"*.z.example"),
+        dns.name.from_text(b"\200.z.example"),
     )
 
     TEST_ORDER = [
@@ -80,7 +81,7 @@ class NSECCanonicalOrder(unittest.TestCase):
 
     def test_order_function(self):
         for test_order in self.TEST_ORDER:
-            order = nsec.compare_canonical_order(
+            order = nsec_utils.compare_canonical_order(
                 self.DATA[test_order[0]], self.DATA[test_order[1]]
             )
             self.assertEqual(test_order[2], order, test_order)
@@ -91,7 +92,7 @@ class NSECCanonicalOrder(unittest.TestCase):
             j = randint(0, len(self.DATA) - 1)
 
             result = (i > j) - (i < j)
-            order = nsec.compare_canonical_order(self.DATA[i], self.DATA[j])
+            order = nsec_utils.compare_canonical_order(self.DATA[i], self.DATA[j])
             self.assertEqual(result, order, f"{i}, {j}")
 
 
