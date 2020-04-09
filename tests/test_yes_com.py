@@ -13,7 +13,7 @@ log.setLevel(logging.WARNING)
 
 class YesCom(unittest.TestCase):
     """
-    Last checked on 04.04.2020
+    Last checked on 09.04.2020
     """
 
     # fmt: off
@@ -55,7 +55,7 @@ class YesCom(unittest.TestCase):
 
 class YesComNonExistence(unittest.TestCase):
     """
-    Last checked on 04.04.2020
+    Last checked on 09.04.2020
     """
 
     # fmt: off

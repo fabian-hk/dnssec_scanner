@@ -13,7 +13,7 @@ log.setLevel(logging.WARNING)
 
 class WwwBrokendnssecNet(unittest.TestCase):
     """
-    Last checked on 04.04.2020
+    Last checked on 09.04.2020
     """
 
     # fmt: off

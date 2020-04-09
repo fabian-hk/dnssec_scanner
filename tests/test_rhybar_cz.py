@@ -13,7 +13,7 @@ log.setLevel(logging.WARNING)
 
 class RhybarCz(unittest.TestCase):
     """
-    Last checked on 04.04.2020
+    Last checked on 09.04.2020
     """
 
     # fmt: off
@@ -22,8 +22,8 @@ class RhybarCz(unittest.TestCase):
         str(TestMessage(".", "", dns.rdatatype.DNSKEY, "20326,33853,48903", Msg.VALIDATED, Validator.KSK, "20326")),
         str(TestMessage(".", "cz.", dns.rdatatype.DS, "20237", Msg.VALIDATED, Validator.ZSK, "48903")),
         str(TestMessage("cz.", "", Types.KSK, "20237", Msg.VALIDATED, Validator.DS, "20237")),
-        str(TestMessage("cz.", "", dns.rdatatype.DNSKEY, "16513,20237,44987", Msg.VALIDATED, Validator.KSK, "20237")),
-        str(TestMessage("cz.", "", dns.rdatatype.DNSKEY, "16513,20237,44987", Msg.VALIDATED, Validator.ZSK, "44987")),
+        str(TestMessage("cz.", "", dns.rdatatype.DNSKEY, "20237,44987", Msg.VALIDATED, Validator.KSK, "20237")),
+        str(TestMessage("cz.", "", dns.rdatatype.DNSKEY, "20237,44987", Msg.VALIDATED, Validator.ZSK, "44987")),
         str(TestMessage("cz.", "rhybar.cz.", dns.rdatatype.DS, "61281", Msg.VALIDATED, Validator.ZSK, "44987")),
     ]
 
@@ -61,7 +61,7 @@ class RhybarCz(unittest.TestCase):
 
 class RhybarCzNonExistence(unittest.TestCase):
     """
-    Last checked on 04.04.2020
+    Last checked on 09.04.2020
     """
 
     # fmt: off
@@ -70,8 +70,8 @@ class RhybarCzNonExistence(unittest.TestCase):
         str(TestMessage(".", "", dns.rdatatype.DNSKEY, "20326,33853,48903", Msg.VALIDATED, Validator.KSK, "20326")),
         str(TestMessage(".", "cz.", dns.rdatatype.DS, "20237", Msg.VALIDATED, Validator.ZSK, "48903")),
         str(TestMessage("cz.", "", Types.KSK, "20237", Msg.VALIDATED, Validator.DS, "20237")),
-        str(TestMessage("cz.", "", dns.rdatatype.DNSKEY, "16513,20237,44987", Msg.VALIDATED, Validator.KSK, "20237")),
-        str(TestMessage("cz.", "", dns.rdatatype.DNSKEY, "16513,20237,44987", Msg.VALIDATED, Validator.ZSK, "44987")),
+        str(TestMessage("cz.", "", dns.rdatatype.DNSKEY, "20237,44987", Msg.VALIDATED, Validator.KSK, "20237")),
+        str(TestMessage("cz.", "", dns.rdatatype.DNSKEY, "20237,44987", Msg.VALIDATED, Validator.ZSK, "44987")),
         str(TestMessage("cz.", "rhybar.cz.", dns.rdatatype.DS, "61281", Msg.VALIDATED, Validator.ZSK, "44987")),
         "rhybar.cz. zone: Found NSEC that a.rhybar.cz does not exist",
         "rhybar.cz. zone: Found NSEC that no wildcard expansion for a.rhybar.cz is possible",
