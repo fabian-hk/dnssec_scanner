@@ -6,12 +6,13 @@ that can help to debug DNSSEC configuration.
 
 ## Features
 1. Returns one of the three states: Secure, Insecure, Bogus
-2. Warns about misconfiguration
-3. Gives detailed error messages if the domain could not be
+2. Returns log messages about the verification process
+3. Warns about misconfiguration
+4. Gives detailed error messages if the domain could not be
 validated
-4. Returns the protected and unprotected RR sets for the domain
+5. Returns the protected and unprotected RR sets for the domain
 name as ``dns.rrset.RRset`` types from ``dnspython``
-5. Proof with NSEC or NSEC3 that a domain name does not exist
+6. Proof with NSEC or NSEC3 that a domain name does not exist
 as well as that DNSSEC is not available in a zone
 
 ## Mechanics

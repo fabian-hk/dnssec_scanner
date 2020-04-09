@@ -94,7 +94,7 @@ def find_closest_encloser(
     next_closer_name = closest_encloser
 
     for i in range(l):
-        closest_enclosure_hash = dns.dnssec.nsec3_hash(
+        closest_enclosure_hash = nsec_utils.nsec3_hash(
             closest_encloser,
             nsec3param.salt,
             nsec3param.iterations,
@@ -127,7 +127,7 @@ def check_name_cover(
     :param next_closer_name:
     :return:
     """
-    name_hash = dns.dnssec.nsec3_hash(
+    name_hash = nsec_utils.nsec3_hash(
         name, nsec3param.salt, nsec3param.iterations, nsec3param.algorithm,
     )
 

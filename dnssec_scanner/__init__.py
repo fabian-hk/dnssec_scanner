@@ -71,7 +71,7 @@ class DNSSECScanner:
             validate_zone(zone, result)
 
             rr_types = self.find_records(zone)
-            zone.RR = self.get_records(zone, result, rr_types)
+            zone.RR = self.get_records(zone, rr_types)
 
             validate_rrset(zone, result, True)
             return result
@@ -145,7 +145,7 @@ class DNSSECScanner:
         return rr_types
 
     def get_records(
-            self, zone: Zone, result: DNSSECScannerResult, rrs: Set[int]
+            self, zone: Zone, rrs: Set[int]
     ) -> List[dns.rrset.RRset]:
         output = []
         for rr in rrs:
@@ -191,9 +191,3 @@ class DNSSECScanner:
 
         root_zone = Zone(".", self.ROOT_ZONE[0], self.ROOT_ZONE[1], zone)
         return root_zone
-
-
-if __name__ == "__main__":
-    scanner = DNSSECScanner("rhybar.cz")
-    res = scanner.run_scan()
-    print(res)
