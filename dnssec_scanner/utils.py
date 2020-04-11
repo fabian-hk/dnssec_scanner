@@ -10,7 +10,6 @@ import logging
 
 from .messages import Message
 
-logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("dnssec_scanner")
 
 
@@ -110,21 +109,44 @@ class Zone:
         self.DNSKEY_RRSIG: Optional[dns.rrset.RRset] = None
         self.trusted_DS: List[dns.rrset.RRset] = []
         self.untrusted_DS: List[dns.rrset.RRset] = []
-        self.RR: Optional[dns.rrset.RRset] = None
+        self.RR: Optional[List[dns.rrset.RRset]] = None
         self.child_name: str = ""
 
     def __str__(self):
         return f"{self.name} @{self.ip}"
 
 
+class SoaState(Enum):
+    FOUND = 0
+    FOUND_CNAME = 1
+    NOT_FOUND = 2
+
+
 def dns_query(
         domain: str, ip: str, type: int, tries: Optional[int] = 0
 ) -> dns.message.Message:
     try:
-        request = dns.message.make_query(domain, type, want_dnssec=True, payload=16384)
+        request = dns.message.make_query(domain, type, want_dnssec=True, payload=32768)
         return dns.query.udp(request, ip, timeout=1)
     except dns.exception.Timeout as e:
-        log.warning("Query timeout")
+        log.debug("Query timeout")
+        if tries < 5:
+            return dns_query(domain, ip, type, tries + 1)
+        else:
+            raise e
+    except dns.message.Truncated as e:
+        log.debug("Truncated flag was set - trying again with TCP")
+        return dns_query_tcp(domain, ip, type)
+
+
+def dns_query_tcp(
+        domain: str, ip: str, type: int, tries: Optional[int] = 0
+) -> dns.message.Message:
+    try:
+        request = dns.message.make_query(domain, type, want_dnssec=True, payload=32768)
+        return dns.query.tcp(request, ip, timeout=4)
+    except dns.exception.Timeout as e:
+        log.debug("Query timeout")
         if tries < 5:
             return dns_query(domain, ip, type, tries + 1)
         else:
@@ -132,7 +154,7 @@ def dns_query(
 
 
 def get_rr_by_type(
-    items: List[dns.rrset.RRset], rdtype: dns.rdatatype
+        items: List[dns.rrset.RRset], rdtype: dns.rdatatype
 ) -> Optional[dns.rrset.RRset]:
     for item in items:
         if item.rdtype == rdtype:

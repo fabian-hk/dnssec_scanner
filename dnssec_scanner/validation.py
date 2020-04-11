@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import List, Tuple, Optional
-import logging
 
 import dns
 
@@ -8,11 +7,8 @@ from . import utils
 from .utils import DNSSECScannerResult, Zone, Key
 from .messages import Message, Validator, Msg, Types
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("dnssec_scanner")
 
-
-def validate_zone(zone: Zone, result: DNSSECScannerResult):
+def validate_zone_keys(zone: Zone, result: DNSSECScannerResult):
     if zone.DNSKEY and zone.DNSKEY_RRSIG:
         trusted_ksks, untrusted_ksks = validate_ksks(zone, result)
         validate_zsks(zone, trusted_ksks, untrusted_ksks, result)
@@ -151,7 +147,9 @@ def validate_zsks(
                     zone.DNSKEY, sig, {dns.name.from_text(zone.name): [ksk]},
                 )
             except dns.dnssec.ValidationFailure as e:
-                msg.add_warning(validator, key_id, f"{Msg.VALIDATION_FAILURE} ({e})", zone.DNSKEY)
+                msg.add_warning(
+                    validator, key_id, f"{Msg.VALIDATION_FAILURE} ({e})", zone.DNSKEY
+                )
             else:
                 msg.set_success(validator, key_id)
                 msg.validated = success
@@ -172,7 +170,10 @@ def validate_zsks(
                 )
             except dns.dnssec.ValidationFailure as e:
                 msg.add_warning(
-                    Validator.ZSK, key_id, f"{Msg.VALIDATION_FAILURE} ({e})", zone.DNSKEY
+                    Validator.ZSK,
+                    key_id,
+                    f"{Msg.VALIDATION_FAILURE} ({e})",
+                    zone.DNSKEY,
                 )
             else:
                 msg.set_success(Validator.ZSK, key_id)
@@ -259,7 +260,7 @@ def validate_rrset(
             s = result.compute_message(msg)
             result.change_state(s)
             res &= s
-            if save and msg:
+            if save and msg and result.state == utils.State.SECURE:
                 result.secure_rrsets.append(rr)
                 note.append(dns.rdatatype.to_text(rr.rdtype))
             elif save:

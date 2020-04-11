@@ -10,12 +10,12 @@ from dateutil.parser import parse
 import datetime
 
 from dnssec_scanner.validation import (
-    validate_zone,
+    validate_zone_keys,
     validate_rrset,
     validate_ds,
 )
 from dnssec_scanner import nsec
-from dnssec_scanner.utils import DNSSECScannerResult, Zone, State
+from dnssec_scanner.utils import DNSSECScannerResult, Zone, State, SoaState
 from dnssec_scanner import utils
 from dnssec_scanner.messages import Message, Msg
 
@@ -33,7 +33,7 @@ class DNSSECScanner:
         self.domain = domain
         self.root_zone = self.initialize_root_zone()
 
-    def run_scan(self) -> DNSSECScannerResult:
+    def run(self) -> DNSSECScannerResult:
         resolver = dns.resolver.Resolver()
         resolver.nameservers = self.RESOLVER_IPS
 
@@ -44,15 +44,39 @@ class DNSSECScanner:
         return result
 
     def scan_zone(
-        self, zone: Zone, result: DNSSECScannerResult, resolver: dns.resolver.Resolver,
+            self, zone: Zone, result: DNSSECScannerResult, resolver: dns.resolver.Resolver,
     ) -> DNSSECScannerResult:
         log.info(f"Entering {zone.name} zone")
 
+        self.get_dnskey(zone)
+
+        validate_zone_keys(zone, result)
+
+        success = self.search_soa(zone, result, resolver)
+
+        if success == SoaState.FOUND:
+            return result
+        elif success == SoaState.FOUND_CNAME:
+            return self.scan_zone(self.root_zone, result, resolver)
+
+        next_zone = self.get_ns(zone, resolver)
+
+        success = self.get_ds(zone, next_zone, result)
+
+        if success:
+            validate_ds(zone, result)
+
+        return self.scan_zone(next_zone, result, resolver)
+
+    def get_dnskey(self, zone: Zone):
         response = utils.dns_query(zone.name, zone.ip, dns.rdatatype.DNSKEY)
 
         zone.DNSKEY = utils.get_rr_by_type(response.answer, dns.rdatatype.DNSKEY)
         zone.DNSKEY_RRSIG = utils.get_rr_by_type(response.answer, dns.rdatatype.RRSIG)
 
+    def search_soa(
+            self, zone: Zone, result: DNSSECScannerResult, resolver: dns.resolver.Resolver
+    ) -> SoaState:
         response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.SOA)
 
         rrsets = response.answer + response.authority
@@ -63,22 +87,17 @@ class DNSSECScanner:
             # Domain name does not exist. Validate with NSEC the integrity of the none-existence.
             result.note = "Domain name does not exist"
             zone.RR = rrsets
-            validate_zone(zone, result)
             nsec.proof_none_existence(zone, result, False)
-            return result
+            return SoaState.FOUND
         elif utils.get_rr_by_type(rrsets, dns.rdatatype.SOA):
-            # We are in the zone for the domain name.
-            validate_zone(zone, result)
-
+            # We are in the zone for the domain name
             rr_types = self.find_records(zone)
             zone.RR = self.get_records(zone, rr_types)
 
             validate_rrset(zone, result, True)
-            return result
+            return SoaState.FOUND
         elif utils.get_rrs_by_type(rrsets, dns.rdatatype.CNAME):
             # We have found a CNAME RR set so we have to start from the top again
-            validate_zone(zone, result)
-
             zone.RR = rrsets
             validate_rrset(zone, result)  # validate CNAME entry
 
@@ -86,17 +105,24 @@ class DNSSECScanner:
                 utils.get_rr_by_type(rrsets, dns.rdatatype.CNAME).items[0].target
             )
             result.domain = self.domain
-            return self.scan_zone(self.root_zone, result, resolver)
+            return SoaState.FOUND_CNAME
 
+        return SoaState.NOT_FOUND
+
+    def get_ns(self, zone: Zone, resolver: dns.resolver.Resolver) -> Zone:
         response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.NS)
 
-        ns = utils.get_rr_by_type(response.authority, dns.rdatatype.NS)
-        next_zone_name = str(ns.name)
+        response = utils.get_rr_by_type(response.authority, dns.rdatatype.NS)
+        next_zone_name = str(response.name)
         zone.child_name = next_zone_name
 
-        validate_zone(zone, result)
+        next_zone_domain = response.items[0].to_text()
+        next_zone_ip = resolver.query(next_zone_domain, "A").rrset.items[0].address
 
-        response = utils.dns_query(next_zone_name, zone.ip, dns.rdatatype.DS)
+        return Zone(next_zone_name, next_zone_ip, next_zone_domain, zone)
+
+    def get_ds(self, zone: Zone, next_zone: Zone, result: DNSSECScannerResult) -> bool:
+        response = utils.dns_query(next_zone.name, zone.ip, dns.rdatatype.DS)
 
         zone.RR = response.answer
         if not utils.get_rr_by_type(zone.RR, dns.rdatatype.DS):
@@ -106,15 +132,9 @@ class DNSSECScanner:
             msg.set_not_found(Msg.NOT_FOUND)
             result.errors.append(str(msg))
             result.change_state(False)
-        else:
-            validate_ds(zone, result)
+            return False
 
-        next_zone_domain = ns.items[0].to_text()
-        next_zone_ip = resolver.query(next_zone_domain, "A").rrset.items[0].address
-
-        next_zone = Zone(next_zone_name, next_zone_ip, next_zone_domain, zone)
-
-        return self.scan_zone(next_zone, result, resolver)
+        return True
 
     def find_records(self, zone: Zone) -> Set[int]:
         # define a default list of records in case ANY does not return anything
@@ -133,8 +153,7 @@ class DNSSECScanner:
         ]
 
         # ask with ANY for all existing records
-        request = dns.message.make_query(self.domain, dns.rdatatype.ANY, payload=16384)
-        response = dns.query.tcp(request, zone.ip)
+        response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.ANY)
 
         for rr in response.answer:
             if rr.rdtype != dns.rdatatype.DNSKEY and rr.rdtype != dns.rdatatype.RRSIG:
@@ -144,9 +163,7 @@ class DNSSECScanner:
         rr_types = set(rr_types)
         return rr_types
 
-    def get_records(
-            self, zone: Zone, rrs: Set[int]
-    ) -> List[dns.rrset.RRset]:
+    def get_records(self, zone: Zone, rrs: Set[int]) -> List[dns.rrset.RRset]:
         output = []
         for rr in rrs:
             response = utils.dns_query(self.domain, zone.ip, rr)

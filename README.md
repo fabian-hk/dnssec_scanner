@@ -38,7 +38,7 @@ found records divided into secure and insecure records
 from dnssec_scanner import DNSSECScanner, DNSSECScannerResult
 
 scanner = DNSSECScanner("www.ietf.org")
-res = scanner.run_scan() # type: DNSSECScannerResult
+res = scanner.run() # type: DNSSECScannerResult
 print(res)
 ```
 

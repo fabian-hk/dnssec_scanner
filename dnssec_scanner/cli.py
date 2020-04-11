@@ -19,7 +19,7 @@ def main():
         raise ValueError("You have to enter a valid domain name.")
 
     scanner = DNSSECScanner(domain)
-    result = scanner.run_scan()
+    result = scanner.run()
     print(result)
 
 

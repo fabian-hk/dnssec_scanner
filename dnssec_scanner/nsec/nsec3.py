@@ -35,6 +35,7 @@ def nsec3_proof_of_none_existence(
     nsec3param = utils.get_rr_by_type(zone.RR, dns.rdatatype.NSEC3PARAM)
 
     # TODO if there is only one NSEC3 record check if the owner hash is the hash of the QNAME
+    # TODO check if the Opt-Out flag is set
 
     # search for closest enclosure
     status, closest_encloser, next_closer_name = find_closest_encloser(

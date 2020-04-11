@@ -1,29 +1,33 @@
-import unittest
 import logging
 
 import dns.rdatatype
 
+from tests.utils.custom_test_case import CustomTestCase as CTC
 from dnssec_scanner import DNSSECScanner, State
 from dnssec_scanner.messages import Validator, Msg, Types
-from tests.messages_testing import TestMessage
+from tests.utils.messages_testing import TestMessage
 
 log = logging.getLogger("dnssec_scanner")
 log.setLevel(logging.WARNING)
 
 
-class WwwBrokendnssecNet(unittest.TestCase):
+class WwwBrokendnssecNet(CTC):
     """
-    Last checked on 09.04.2020
+    Last checked on 11.04.2020
     """
 
     # fmt: off
     LOGS = [
-        str(TestMessage(".", "", Types.KSK, "20326", Msg.VALIDATED, Validator.DS, "20326")),
-        str(TestMessage(".", "", dns.rdatatype.DNSKEY, "20326,33853,48903", Msg.VALIDATED, Validator.KSK, "20326")),
-        str(TestMessage(".", "net.", dns.rdatatype.DS, "35886", Msg.VALIDATED, Validator.ZSK, "48903")),
-        str(TestMessage("net.", "", Types.KSK, "35886", Msg.VALIDATED, Validator.DS, "35886")),
-        str(TestMessage("net.", "", dns.rdatatype.DNSKEY, "24512,35886", Msg.VALIDATED, Validator.KSK, "35886")),
-        str(TestMessage("net.", "brokendnssec.net.", dns.rdatatype.DS, "2371", Msg.VALIDATED, Validator.ZSK, "24512")),
+        str(TestMessage(".", "", Types.KSK, CTC.SINGLE_PATTERN, Msg.VALIDATED, Validator.DS, CTC.SINGLE_PATTERN)),
+        str(TestMessage(".", "", dns.rdatatype.DNSKEY, CTC.MULTI_PATTERN, Msg.VALIDATED, Validator.KSK,
+                        CTC.SINGLE_PATTERN)),
+        str(TestMessage(".", "net.", dns.rdatatype.DS, CTC.MULTI_PATTERN, Msg.VALIDATED, Validator.ZSK,
+                        CTC.SINGLE_PATTERN)),
+        str(TestMessage("net.", "", Types.KSK, CTC.SINGLE_PATTERN, Msg.VALIDATED, Validator.DS, CTC.SINGLE_PATTERN)),
+        str(TestMessage("net.", "", dns.rdatatype.DNSKEY, CTC.MULTI_PATTERN, Msg.VALIDATED, Validator.KSK,
+                        CTC.SINGLE_PATTERN)),
+        str(TestMessage("net.", "brokendnssec.net.", dns.rdatatype.DS, CTC.MULTI_PATTERN, Msg.VALIDATED, Validator.ZSK,
+                        CTC.SINGLE_PATTERN)),
     ]
 
     WARNIGNS = []
@@ -39,10 +43,10 @@ class WwwBrokendnssecNet(unittest.TestCase):
 
     def test_dnssec(self):
         scanner = DNSSECScanner("www.brokendnssec.net")
-        result = scanner.run_scan()
+        result = scanner.run()
 
-        self.assertCountEqual(self.LOGS, result.logs)
-        self.assertCountEqual(self.WARNIGNS, result.warnings)
-        self.assertCountEqual(self.ERRORS, result.errors)
+        self.assert_list(self.LOGS, result.logs)
+        self.assert_list(self.WARNIGNS, result.warnings)
+        self.assert_list(self.ERRORS, result.errors)
 
         self.assertEqual(State.BOGUS, result.state)

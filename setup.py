@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/fabian-hk/dnssec_scanner.git",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=["tests"]),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
@@ -20,7 +20,7 @@ setuptools.setup(
     ],
     python_requires=">=3.7",
     install_requires=[
-        "dnspython @ git+https://github.com/fabian-hk/dnspython.git@feature/nsec3-hash#egg=dnspython",
+        "dnspython",
         "tabulate",
         "dataclasses",
         "pycryptodome>=3.4",
@@ -29,7 +29,5 @@ setuptools.setup(
         "python-dateutil",
         "ecdsa",
     ],
-    entry_points={
-        "console_scripts": ["dnssec-scanner=dnssec_scanner.cli:main"]
-    },
+    entry_points={"console_scripts": ["dnssec-scanner=dnssec_scanner.cli:main"]},
 )
