@@ -52,11 +52,11 @@ class DNSSECScanner:
 
         validate_zone_keys(zone, result)
 
-        success = self.search_soa(zone, result, resolver)
+        status = self.search_soa(zone, result, resolver)
 
-        if success == SoaState.FOUND:
+        if status == SoaState.FOUND:
             return result
-        elif success == SoaState.FOUND_CNAME:
+        elif status == SoaState.FOUND_CNAME:
             return self.scan_zone(self.root_zone, result, resolver)
 
         next_zone = self.get_ns(zone, resolver)

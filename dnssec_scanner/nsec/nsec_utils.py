@@ -114,7 +114,7 @@ def nsec_window_to_array(
             for j in range(8):
                 if b & (0x80 >> j):
                     rrset_types.append(window * 256 + i * 8 + j)
-                    print(f"Type: {dns.rdatatype.to_text(window * 256 + i * 8 + j)}")
+                    # print(f"Type: {dns.rdatatype.to_text(window * 256 + i * 8 + j)}")
 
     rrset_types = set(rrset_types)
     return rrset_types

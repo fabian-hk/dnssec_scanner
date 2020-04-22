@@ -130,7 +130,7 @@ def dns_query(
         return dns.query.udp(request, ip, timeout=1)
     except dns.exception.Timeout as e:
         log.debug("Query timeout")
-        if tries < 5:
+        if tries < 10:
             return dns_query(domain, ip, type, tries + 1)
         else:
             raise e

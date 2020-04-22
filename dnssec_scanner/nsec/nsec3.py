@@ -34,8 +34,13 @@ def nsec3_proof_of_none_existence(
     success &= validate_rrset(zone, result)
     nsec3param = utils.get_rr_by_type(zone.RR, dns.rdatatype.NSEC3PARAM)
 
-    # TODO if there is only one NSEC3 record check if the owner hash is the hash of the QNAME
-    # TODO check if the Opt-Out flag is set
+    if check_ds:
+        status = check_nsec_bitmap(nsec3s, nsec3param.items[0], result.domain)
+        # If we want to show that there is no DS record for the QNAME
+        # and we have found an NSEC3 record for the QNAME without the
+        # DS record in its bitmap field we are already done.
+        if status:
+            return status
 
     # search for closest enclosure
     status, closest_encloser, next_closer_name = find_closest_encloser(
@@ -59,7 +64,11 @@ def nsec3_proof_of_none_existence(
         result.errors.append(msg)
     success &= status
 
-    if not check_ds:
+    if check_ds:
+        # If we want to show an insecure delegation at this point,
+        # every NSEC3 record must have the Opt-Out flag set.
+        success &= check_opt_out(nsec3s)
+    else:
         # Proof "Three to Tango" to show that the domain name does not exist.
         # The only missing part is to show that no wildcard expansion could be used.
         # Source: https://tools.ietf.org/html/rfc7129#section-5.6
@@ -139,3 +148,51 @@ def check_name_cover(
             return True
 
     return False
+
+
+def check_opt_out(nsec3s: List[dns.rdtypes.ANY.NSEC3]) -> bool:
+    """
+    Checks whether every NSEC3 record has
+    the Opt-Out flag set.
+    :param nsec3s:
+    :return:
+    """
+    success = True
+
+    for name, nsec3 in nsec3s:
+        flags = nsec3.items[0].flags
+        # Opt-Out flag is the least significant bit.
+        # Source: https://tools.ietf.org/html/rfc5155#section-3.2
+        success &= (flags & 0x01) == 1
+
+    return success
+
+
+def check_nsec_bitmap(
+        nsec3s: List[dns.rdtypes.ANY.NSEC3],
+        nsec3param: dns.rdtypes.ANY.NSEC3PARAM,
+        name: str,
+) -> bool:
+    """
+    Checks whether there is an NSEC3 record for the QNAME
+    that does not have the type DS in its bitmap field.
+    :param nsec3s:
+    :param nsec3param:
+    :param name:
+    :return:
+    """
+    success = True
+
+    # check whether the owner name matches to QNAME
+    name_hash = nsec_utils.nsec3_hash(
+        name, nsec3param.salt, nsec3param.iterations, nsec3param.algorithm,
+    )
+    owner_name, nsec3 = nsec3s[0]
+    owner_hash = str(owner_name).split(".")[0]
+    success &= name_hash == owner_hash
+
+    # check if the bitmap field does not contain the DS type
+    bitmap_list = nsec_utils.nsec_window_to_array(nsec3.items[0])
+    success &= dns.rdatatype.DS not in bitmap_list
+
+    return success
