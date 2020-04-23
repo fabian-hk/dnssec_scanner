@@ -1,4 +1,4 @@
-from typing import List, Set
+from typing import List, Set, Optional
 import logging
 
 import dns
@@ -18,6 +18,7 @@ from dnssec_scanner import nsec
 from dnssec_scanner.utils import DNSSECScannerResult, Zone, State, SoaState
 from dnssec_scanner import utils
 from dnssec_scanner.messages import Message, Msg
+from dnssec_scanner.nsec import nsec_utils
 
 
 logging.basicConfig(level=logging.INFO)
@@ -25,12 +26,18 @@ log = logging.getLogger("dnssec_scanner")
 
 
 class DNSSECScanner:
-
     ROOT_ZONE = ("199.7.83.42", "l.root-servers.net.")
     RESOLVER_IPS = ["8.8.8.8", "8.8.4.4", "1.1.1.1"]
 
-    def __init__(self, domain: str):
+    def __init__(self, domain: str, type: Optional[int] = -1):
+        """
+        :param domain: Domain names as string
+        :param type: One of the dns.rdatatype types
+        """
         self.domain = domain
+        self.requested_type = None
+        if 0 <= type <= 65535:
+            self.requested_type = type
         self.root_zone = self.initialize_root_zone()
 
     def run(self) -> DNSSECScannerResult:
@@ -40,6 +47,9 @@ class DNSSECScanner:
         result = DNSSECScannerResult(self.domain)
 
         result = self.scan_zone(self.root_zone, result, resolver)
+
+        if self.requested_type:
+            result.compute_requested_type(self.requested_type)
 
         return result
 
@@ -152,6 +162,9 @@ class DNSSECScanner:
             dns.rdatatype.TXT,
         ]
 
+        if self.requested_type:
+            rr_types.append(self.requested_type)
+
         # ask with ANY for all existing records
         response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.ANY)
 
@@ -159,9 +172,32 @@ class DNSSECScanner:
             if rr.rdtype != dns.rdatatype.DNSKEY and rr.rdtype != dns.rdatatype.RRSIG:
                 rr_types.append(rr.rdtype)
 
+        # Try to query a NSEC or NSEC3 record. This would tell
+        # us all available record types.
+        rr_types.extend(self.find_records_from_nsec(zone))
+
         # remove duplicates
         rr_types = set(rr_types)
+        # remove NSEC and NSEC3 record types
+        if dns.rdatatype.NSEC in rr_types:
+            rr_types.remove(dns.rdatatype.NSEC)
+        if dns.rdatatype.NSEC3 in rr_types:
+            rr_types.remove(dns.rdatatype.NSEC3)
         return rr_types
+
+    def find_records_from_nsec(self, zone: Zone) -> Set[int]:
+        response = utils.dns_query(self.domain, zone.ip, dns.rdatatype.NSEC)
+        rrsets = response.answer + response.authority
+
+        nsec = utils.get_rr_by_type(rrsets, dns.rdatatype.NSEC)
+        if nsec:
+            return nsec_utils.nsec_window_to_array(nsec.items[0])
+
+        nsec3 = utils.get_rr_by_type(rrsets, dns.rdatatype.NSEC3)
+        if nsec3:
+            return nsec_utils.nsec_window_to_array(nsec3.items[0])
+
+        return set()
 
     def get_records(self, zone: Zone, rrs: Set[int]) -> List[dns.rrset.RRset]:
         output = []
@@ -171,7 +207,6 @@ class DNSSECScanner:
             rrsets = utils.get_rrs_by_type(response.answer, rr)
             if rrsets:
                 output.extend(response.answer)
-            # TODO if RR does not exist check NSEC for RR types
 
             for name, rrset in rrsets:
                 # only for pretty printing

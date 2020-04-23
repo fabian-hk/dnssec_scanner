@@ -37,6 +37,7 @@ class DNSSECScannerResult:
 
         self.secure_rrsets: List[dns.rrset.RRset] = []
         self.insecure_rrsets: List[dns.rrset.RRset] = []
+        self.requested_rrset: Tuple[bool, Optional[dns.rrset.RRset]] = (False, None)
 
     def compute_message(self, new_msg: Message) -> bool:
         if new_msg:
@@ -72,6 +73,17 @@ class DNSSECScannerResult:
 
         return success
 
+    def compute_requested_type(self, type: int):
+        for rr in self.secure_rrsets:
+            if rr.rdtype == type:
+                self.requested_rrset = (True, rr)
+                return
+
+        for rr in self.insecure_rrsets:
+            if rr.rdtype == type:
+                self.requested_rrset = (False, rr)
+                return
+
     def __str__(self):
         width = 80
         wrapper = TextWrapper(width=width, replace_whitespace=False)
@@ -90,13 +102,17 @@ class DNSSECScannerResult:
         logs = {expand_string("Log", width): tmp_info}
         warnings = {expand_string("Warnings", width): tmp_warn}
         errors = {expand_string("Errors", width): tmp_err}
-        return (
+
+        output = (
             f"\n{tabulate(logs, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
             f"{tabulate(warnings, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
             f"{tabulate(errors, headers='keys', tablefmt='fancy_grid', showindex='always')}\n"
             f"\nDomain: {self.qname}, DNSSEC: {self.state}, Note: {self.note}\n"
             f"* not protected\n"
         )
+        if self.requested_rrset[1]:
+            output += f"\nResult for requested type:\n{self.requested_rrset[1].to_text()}"
+        return output
 
 
 class Zone:
@@ -127,7 +143,7 @@ def dns_query(
 ) -> dns.message.Message:
     try:
         request = dns.message.make_query(domain, type, want_dnssec=True, payload=32768)
-        return dns.query.udp(request, ip, timeout=1)
+        return dns.query.udp(request, ip, timeout=5)
     except dns.exception.Timeout as e:
         log.debug("Query timeout")
         if tries < 10:
@@ -144,7 +160,7 @@ def dns_query_tcp(
 ) -> dns.message.Message:
     try:
         request = dns.message.make_query(domain, type, want_dnssec=True, payload=32768)
-        return dns.query.tcp(request, ip, timeout=4)
+        return dns.query.tcp(request, ip, timeout=5)
     except dns.exception.Timeout as e:
         log.debug("Query timeout")
         if tries < 5:

@@ -13,9 +13,6 @@ log.setLevel(logging.WARNING)
 
 
 class YesCom(CTC):
-    """
-    Last checked on 11.04.2020
-    """
 
     # fmt: off
     LOGS = [
@@ -69,9 +66,6 @@ class YesCom(CTC):
 
 
 class YesComNonExistence(CTC):
-    """
-    Last checked on 11.04.2020
-    """
 
     # fmt: off
     LOGS = [

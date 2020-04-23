@@ -12,9 +12,6 @@ log.setLevel(logging.WARNING)
 
 
 class WwwBrokendnssecNet(CTC):
-    """
-    Last checked on 11.04.2020
-    """
 
     # fmt: off
     LOGS = [

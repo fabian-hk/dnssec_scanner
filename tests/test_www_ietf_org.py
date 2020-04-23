@@ -12,9 +12,6 @@ log.setLevel(logging.WARNING)
 
 
 class WwwIetfOrg(CTC):
-    """
-    Last checked on 11.04.2020
-    """
 
     # fmt: off
     LOGS = [

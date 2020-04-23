@@ -13,9 +13,6 @@ log.setLevel(logging.WARNING)
 
 
 class WwwDnssecFailedOrg(CTC):
-    """
-    Last checked on 11.04.2020
-    """
 
     # fmt: off
     LOGS = [

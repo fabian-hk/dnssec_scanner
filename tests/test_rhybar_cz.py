@@ -12,9 +12,6 @@ log.setLevel(logging.WARNING)
 
 
 class RhybarCz(CTC):
-    """
-    Last checked on 11.04.2020
-    """
 
     # fmt: off
     LOGS = [
@@ -65,9 +62,6 @@ class RhybarCz(CTC):
 
 
 class RhybarCzNonExistence(CTC):
-    """
-    Last checked on 11.04.2020
-    """
 
     # fmt: off
     LOGS = [

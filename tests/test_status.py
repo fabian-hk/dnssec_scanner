@@ -18,7 +18,6 @@ class DomainStatus(unittest.TestCase):
         ("a.dnssec-tools.org", State.SECURE),
         ("dnssec-deployment.org", State.SECURE),
         ("a.dnssec-deployment.org", State.SECURE),
-        ("cloudflare.com", State.SECURE),
         ("a.cloudflare.com", State.SECURE),
         ("a.com", State.SECURE),
         # Insecure domain names
@@ -30,6 +29,7 @@ class DomainStatus(unittest.TestCase):
         ("www.brokendnssec.net", State.BOGUS),
         ("a.www.brokendnssec.net", State.BOGUS),
         ("rhybar.cz", State.BOGUS),
+        ("cloudflare.com", State.BOGUS),
     ]
 
     def test_domains(self):
@@ -41,4 +41,3 @@ class DomainStatus(unittest.TestCase):
                 state,
                 f"Domain: {name}, State:  {result.state}, Real state: {state}",
             )
-            # time.sleep(1)
