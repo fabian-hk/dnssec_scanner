@@ -26,9 +26,10 @@ class State(Enum):
 
 @dataclass
 class DNSSECScannerResult:
-    def __init__(self, domain: str):
+    def __init__(self, domain: str, requested_type: int):
         self.domain = domain
         self.qname = domain
+        self.requested_type = requested_type
         self.state = State.SECURE
         self.note: str = ""
         self.logs: List[str] = []
@@ -111,7 +112,12 @@ class DNSSECScannerResult:
             f"* not protected\n"
         )
         if self.requested_rrset[1]:
-            output += f"\nResult for requested type:\n{self.requested_rrset[1].to_text()}"
+            if self.requested_rrset[0]:
+                output += f"\nResult for requested type (secured):\n{self.requested_rrset[1].to_text()}"
+            else:
+                output += f"\nResult for requested type (not secured):\n{self.requested_rrset[1].to_text()}"
+        elif self.requested_type:
+            output += f"\nCould not find a RR set for the requested type {dns.rdatatype.to_text(self.requested_type)}"
         return output
 
 

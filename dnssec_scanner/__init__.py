@@ -44,7 +44,7 @@ class DNSSECScanner:
         resolver = dns.resolver.Resolver()
         resolver.nameservers = self.RESOLVER_IPS
 
-        result = DNSSECScannerResult(self.domain)
+        result = DNSSECScannerResult(self.domain, self.requested_type)
 
         result = self.scan_zone(self.root_zone, result, resolver)
 
