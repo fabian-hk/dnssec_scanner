@@ -19,31 +19,31 @@ def proof_none_existence(
         # no DNSSEC exists.
         return True
 
-    validated = validate_rrset(zone, result)
+    success = validate_rrset(zone, result)
 
     nsecs = utils.get_rrs_by_type(zone.RR, dns.rdatatype.NSEC)
     nsec3s = utils.get_rrs_by_type(zone.RR, dns.rdatatype.NSEC3)
 
     # try to proof the non-existence with either NSEC or NSEC3
     if nsecs:
-        validated &= nsec.nsec_proof_of_none_existence(nsecs, zone, result, check_ds)
+        success &= nsec.nsec_proof_of_none_existence(nsecs, zone, result, check_ds)
     elif nsec3s:
-        validated &= nsec3.nsec3_proof_of_none_existence(nsec3s, zone, result, check_ds)
+        success &= nsec3.nsec3_proof_of_none_existence(nsec3s, zone, result, check_ds)
     else:
         msg = f"{zone.name} zone: Could not find any NSEC or NSEC3 record"
         result.errors.append(msg)
-        validated = False
+        success = False
 
-    if result.state == State.SECURE and check_ds and validated:
+    if result.state == State.SECURE and check_ds and success:
         result.state = State.INSECURE
-    elif result.state == State.SECURE and not validated:
+    elif result.state == State.SECURE and not success:
         result.state = State.BOGUS
 
-    if validated and check_ds:
+    if success and check_ds:
         msg = f"{zone.name} zone: Successfully proved that {zone.child_name} does not support DNSSEC"
         result.logs.append(msg)
-    elif not validated and check_ds:
+    elif not success and check_ds:
         msg = f"{zone.name} zone: Could not proof that {zone.child_name} does not support DNSSEC"
         result.errors.append(msg)
 
-    return validated
+    return success

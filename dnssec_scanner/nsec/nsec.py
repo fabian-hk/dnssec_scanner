@@ -3,7 +3,6 @@ from typing import Optional, List
 
 import dns
 
-from dnssec_scanner import utils
 from dnssec_scanner.utils import DNSSECScannerResult, Zone
 from dnssec_scanner.nsec import nsec_utils
 
@@ -14,62 +13,100 @@ def nsec_proof_of_none_existence(
         result: DNSSECScannerResult,
         check_ds: Optional[bool] = False,
 ) -> bool:
-    success = True
-
     qname = dns.name.from_text(result.domain)
 
-    if len(nsecs) == 1 and check_ds:
+    if check_ds:
+        success = False
         # Prove that no DS record exists
         # Source: https://tools.ietf.org/html/rfc7129#section-3.2
-        name, nsec = nsecs[0]
-        if nsec_utils.compare_canonical_order(name, qname) == 0:
-            if dns.rdatatype.DS not in nsec_utils.nsec_window_to_array(nsec):
-                msg = f"{zone.name} zone: Prove successful that the DS record does not exist"
-                result.logs.append(msg)
-            else:
-                msg = f"{zone.name} zone: DS record does exist"
-                result.errors.append(msg)
-                success = False
-        else:
-            msg = f"{zone.name} zone: NSEC owner name and QNAME is not the same"
-            result.errors.append(msg)
-            success = False
-    else:
-        # Prove that the domain name does not exist
-        # Source: https://tools.ietf.org/html/rfc7129#section-5.3
-        validated = {"w": False, "rr": False}
         for name, nsec in nsecs:
-            wildcard = dns.name.from_text(f"*.{name.to_text()[:-1]}")
+            if nsec_utils.compare_canonical_order(name, qname) == 0:
+                if dns.rdatatype.DS not in nsec_utils.nsec_window_to_array(
+                        nsec.items[0]
+                ):
+                    msg = f"{zone.name} zone: Prove successful that the DS record does not exist"
+                    result.logs.append(msg)
+                    success = True
+                else:
+                    msg = f"{zone.name} zone: DS record does exist"
+                    result.errors.append(msg)
 
-            if (
-                    nsec_utils.compare_canonical_order(name, qname) == -1
-                    and nsec_utils.compare_canonical_order(qname, nsec.items[0].next) == -1
-            ):
-                # check that the QNAME is covered by an NSEC record
-                msg = (
-                    f"{zone.name} zone: Found NSEC that {result.domain} does not exist"
-                )
-                result.logs.append(msg)
-                validated["rr"] = True
-            if (
-                    qname.is_subdomain(name)
-                    and nsec_utils.compare_canonical_order(name, wildcard) == -1
-                    and nsec_utils.compare_canonical_order(wildcard, nsec.items[0].next)
-                    == -1
-            ):
-                # check that there was no possible wildcard expansion
-                msg = f"{zone.name} zone: Found NSEC that no wildcard expansion for {result.domain} is possible"
-                result.logs.append(msg)
-                validated["w"] = True
-
-        if not validated["rr"]:
-            msg = f"{zone.name} zone: Could not find a NSEC that covers the name {result.domain}"
+        if not success:
+            msg = f"{zone.name} zone: Could not find a NSEC record for the QNAME"
             result.errors.append(msg)
-            success = False
 
-        if not validated["w"]:
-            msg = f"{zone.name} zone: Could not validate that there is no wildcard for the name {result.domain}"
+        return success
+
+    success = True
+
+    # determine a possible closest encloser
+    closest_encloser = find_closest_encloser(nsecs, qname)
+    msg = f"{zone.name} zone: Found closest encloser {b'.'.join(closest_encloser).decode('utf-8')}"
+    result.logs.append(msg)
+
+    qname_list = list(qname)
+    qname_list.reverse()
+
+    # check that every closer name including the qname does not exist
+    closer_names = closest_encloser.copy()
+    for i in range(len(closest_encloser), len(qname_list)):
+        closer_names.insert(0, qname_list[i])
+        closest_encloser_name = dns.name.from_text(b".".join(closer_names))
+        suc = nsec_utils.qname_covered_by_nsec(nsecs, closest_encloser_name)
+        if suc:
+            msg = f"{zone.name} zone: Proved that {closest_encloser_name.to_text()} does not exist"
+            result.logs.append(msg)
+        else:
+            msg = f"{zone.name} zone: Could not proof that {closest_encloser_name.to_text()} does not exist"
             result.errors.append(msg)
-            success = False
+        success &= suc
+
+    # show that no wildcard expansion is possible
+    closest_encloser.insert(0, b"*")
+    wildcard = dns.name.from_text(b".".join(closest_encloser))
+    suc = nsec_utils.qname_covered_by_nsec(nsecs, wildcard)
+    if suc:
+        msg = f"{zone.name} zone: Proved that the wildcard {wildcard.to_text()} does not exist"
+        result.logs.append(msg)
+    else:
+        msg = f"{zone.name} zone: Wildcard {wildcard.to_text()} exists"
+        result.errors.append(msg)
+    success &= suc
 
     return success
+
+
+def find_closest_encloser(
+        nsecs: List[dns.rdtypes.ANY.NSEC], qname: dns.name.Name
+) -> List[bytes]:
+    closest_enclosers = []
+    for nsec in nsecs:
+        closest_enclosers.append(label_match(nsec, qname))
+
+    m = 0
+    result = None
+    for closest_encloser in closest_enclosers:
+        if len(closest_encloser) > m:
+            result = closest_encloser
+            m = len(closest_encloser)
+
+    result.reverse()
+    return result
+
+
+def label_match(nsec: dns.rdtypes.ANY.NSEC, qname: dns.name.Name) -> List[bytes]:
+    closest_encloser = []
+
+    name, _ = nsec
+    name_list = list(name)
+    name_list.reverse()
+    qname_list = list(qname)
+    qname_list.reverse()
+
+    for t in zip(qname_list, name_list):
+        if t[0] == t[1]:
+            closest_encloser.append(t[0])
+        else:
+            break
+
+    return closest_encloser

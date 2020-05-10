@@ -1,6 +1,7 @@
 import logging
 
 import dns.rdatatype
+import re
 
 from tests.utils.custom_test_case import CustomTestCase as CTC
 from dnssec_scanner import DNSSECScanner, State
@@ -77,8 +78,9 @@ class RhybarCzNonExistence(CTC):
                         CTC.SINGLE_PATTERN)),
         str(TestMessage("cz.", "rhybar.cz.", dns.rdatatype.DS, CTC.MULTI_PATTERN, Msg.VALIDATED, Validator.ZSK,
                         CTC.SINGLE_PATTERN)),
-        "rhybar.cz. zone: Found NSEC that a.rhybar.cz does not exist",
-        "rhybar.cz. zone: Found NSEC that no wildcard expansion for a.rhybar.cz is possible",
+        re.escape("rhybar.cz. zone: Found closest encloser rhybar.cz."),
+        re.escape("rhybar.cz. zone: Proved that a.rhybar.cz. does not exist"),
+        re.escape("rhybar.cz. zone: Proved that the wildcard *.rhybar.cz. does not exist"),
     ]
 
     WARNIGNS = []
