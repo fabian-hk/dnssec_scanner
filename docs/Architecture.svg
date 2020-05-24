@@ -1,96 +1,104 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns="http://www.w3.org/2000/svg" style="background-color: rgb(255, 255, 255);"
-     xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1172px" height="461px"
-     viewBox="-0.5 -0.5 1172 461">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1187px"
+     height="592px" viewBox="-0.5 -0.5 1187 592" style="background-color: rgb(255, 255, 255);">
     <defs/>
     <g>
-        <rect x="221" y="10" width="940" height="440" fill="#ffffff" stroke="#000000" pointer-events="all"/>
-        <rect x="641" y="30" width="150" height="20" fill="none" stroke="none" pointer-events="all"/>
+        <rect x="223" y="12" width="954" height="570" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <rect x="581" y="32" width="224" height="20" fill="none" stroke="none" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 148px; height: 1px; padding-top: 40px; margin-left: 642px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 222px; height: 1px; padding-top: 42px; margin-left: 582px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
                                 dnssec_scanner package
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="716" y="44" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                <text x="693" y="47" fill="#000000" font-family="Helvetica" font-size="18px" text-anchor="middle">
                     dnssec_scanner package
                 </text>
             </switch>
         </g>
-        <path d="M 481 185 L 481 180 L 551 180 L 551 325 L 653.63 325" fill="none" stroke="#000000"
+        <path d="M 511 207 L 511 182 L 483 182 L 553 182 L 553 437.06 L 750.63 437" fill="none" stroke="#000000"
               stroke-miterlimit="10" pointer-events="stroke"/>
-        <path d="M 658.88 325 L 651.88 328.5 L 653.63 325 L 651.88 321.5 Z" fill="#000000" stroke="#000000"
+        <path d="M 755.88 437 L 748.88 440.5 L 750.63 437 L 748.88 433.5 Z" fill="#000000" stroke="#000000"
               stroke-miterlimit="10" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 232px; margin-left: 562px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 323px; margin-left: 548px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #FFFFFF; white-space: nowrap; ">
-                                <div>calls for DNSSEC</div>
-                                <div>validation operations
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #FFFFFF; white-space: nowrap; ">
+                                <div style="font-size: 18px">calls for
                                     <br/>
+                                </div>
+                                <div style="font-size: 18px">DNSSEC</div>
+                                <div style="font-size: 18px">validation
+                                    <br/>
+                                </div>
+                                <div style="font-size: 18px">operations
+                                    <br style="font-size: 18px"/>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="562" y="235" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">calls
-                    for DNSSEC...
+                <text x="548" y="328" fill="#000000" font-family="Helvetica" font-size="18px" text-anchor="middle">calls
+                    for...
                 </text>
             </switch>
         </g>
-        <path d="M 381 220 L 381 313.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
-        <path d="M 381 318.88 L 377.5 311.88 L 381 313.63 L 384.5 311.88 Z" fill="#000000" stroke="#000000"
+        <path d="M 386.5 262 L 386.5 380.63" fill="none" stroke="#000000" stroke-miterlimit="10"
+              pointer-events="stroke"/>
+        <path d="M 386.5 385.88 L 383 378.88 L 386.5 380.63 L 390 378.88 Z" fill="#000000" stroke="#000000"
               stroke-miterlimit="10" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 258px; margin-left: 380px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 310px; margin-left: 387px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
-                                <div>calls to log</div>
-                                <div>messages</div>
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
+                                <div style="font-size: 18px">calls to log</div>
+                                <div style="font-size: 18px">messages</div>
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="380" y="261" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">calls
+                <text x="387" y="315" fill="#000000" font-family="Helvetica" font-size="18px" text-anchor="middle">calls
                     to log...
                 </text>
             </switch>
         </g>
-        <rect x="281" y="80" width="200" height="140" rx="21" ry="21" fill="#d5e8d4" stroke="#82b366"
+        <rect x="262" y="42" width="249" height="220" rx="33" ry="33" fill="#d5e8d4" stroke="#82b366"
               pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 198px; height: 1px; padding-top: 150px; margin-left: 282px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 247px; height: 1px; padding-top: 152px; margin-left: 263px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
-                                <div align="left">    DNSSECScanner class</div>
-                                <div align="left">
-                                    <ul>
-                                        <li>entrypoint into the program</li>
-                                        <li>
-                                            <div>queries all the DNS records from the name servers</div>
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                                <div style="font-size: 18px" align="left">    DNSSECScanner class</div>
+                                <div style="font-size: 18px" align="left">
+                                    <ul style="font-size: 18px">
+                                        <li style="font-size: 18px">entrypoint into the program</li>
+                                        <li style="font-size: 18px">
+                                            <div style="font-size: 18px">queries all the DNS records from the name
+                                                servers
+                                            </div>
                                         </li>
-                                        <li>obtains the secure anker from iana.org
-                                            <br/>
+                                        <li style="font-size: 18px">obtains the secure anker from iana.org
+                                            <br style="font-size: 18px"/>
                                         </li>
                                     </ul>
                                 </div>
@@ -98,52 +106,53 @@
                         </div>
                     </div>
                 </foreignObject>
-                <text x="381" y="154" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                <text x="387" y="157" fill="#000000" font-family="Helvetica" font-size="18px" text-anchor="middle">
                     DNSSECScanner class...
                 </text>
             </switch>
         </g>
-        <path d="M 660 395 L 571.8 395 L 571.8 370 L 489.87 370" fill="none" stroke="#000000" stroke-miterlimit="10"
-              pointer-events="stroke"/>
-        <path d="M 484.62 370 L 491.62 366.5 L 489.87 370 L 491.62 373.5 Z" fill="#000000" stroke="#000000"
+        <path d="M 757 527 L 631.24 527.06 L 631.24 457.06 L 511.87 457" fill="none" stroke="#000000"
+              stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 506.62 457 L 513.62 453.5 L 511.87 457 L 513.62 460.5 Z" fill="#000000" stroke="#000000"
               stroke-miterlimit="10" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 396px; margin-left: 613px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 493px; margin-left: 632px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
-                                <div>calls to log</div>
-                                <div>messages</div>
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
+                                <div style="font-size: 18px">calls to log</div>
+                                <div style="font-size: 18px">messages</div>
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="613" y="399" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">calls
+                <text x="632" y="499" fill="#000000" font-family="Helvetica" font-size="18px" text-anchor="middle">calls
                     to log...
                 </text>
             </switch>
         </g>
-        <rect x="660" y="290" width="230" height="140" rx="21" ry="21" fill="#dae8fc" stroke="#6c8ebf"
+        <rect x="757" y="392" width="300" height="180" rx="27" ry="27" fill="#dae8fc" stroke="#6c8ebf"
               pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 228px; height: 1px; padding-top: 360px; margin-left: 662px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 298px; height: 1px; padding-top: 482px; margin-left: 759px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: left; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
                                    DNSSEC Validator
-                                <div>
-                                    <ul>
-                                        <li>validates the KSKs and ZSKs in a zone with the DS RRs from the parent zone
+                                <div style="font-size: 18px">
+                                    <ul style="font-size: 18px">
+                                        <li style="font-size: 18px">validates the KSKs and ZSKs in a zone with the DS
+                                            RRs from the parent zone
                                         </li>
-                                        <li>validates DS RRs with ZSKs</li>
-                                        <li>validates sets of RRs with ZSKs
-                                            <br/>
+                                        <li style="font-size: 18px">validates DS RRs with ZSKs</li>
+                                        <li style="font-size: 18px">validates sets of RRs with ZSKs
+                                            <br style="font-size: 18px"/>
                                         </li>
                                     </ul>
                                 </div>
@@ -151,53 +160,53 @@
                         </div>
                     </div>
                 </foreignObject>
-                <text x="662" y="364" fill="#000000" font-family="Helvetica" font-size="12px">DNSSEC Validator...</text>
+                <text x="759" y="487" fill="#000000" font-family="Helvetica" font-size="18px">DNSSEC Validator...</text>
             </switch>
         </g>
-        <rect x="651" y="75" width="490" height="200" fill="#f5f5f5" stroke="#666666" pointer-events="all"/>
-        <rect x="841" y="90" width="97.5" height="20" fill="none" stroke="none" pointer-events="all"/>
+        <rect x="653" y="77" width="514" height="285" fill="#f5f5f5" stroke="#666666" pointer-events="all"/>
+        <rect x="826" y="82" width="144" height="20" fill="none" stroke="none" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 96px; height: 1px; padding-top: 100px; margin-left: 842px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 142px; height: 1px; padding-top: 92px; margin-left: 827px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
                                 NSEC package
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="890" y="104" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">NSEC
+                <text x="898" y="97" fill="#000000" font-family="Helvetica" font-size="18px" text-anchor="middle">NSEC
                     package
                 </text>
             </switch>
         </g>
-        <path d="M 841 140.63 L 896 140.6 L 896 132.5 L 944.63 132.5" fill="none" stroke="#000000"
+        <path d="M 877 187 L 900.53 187.06 L 900.53 164.47 L 917.63 164.49" fill="none" stroke="#000000"
               stroke-miterlimit="10" pointer-events="stroke"/>
-        <path d="M 949.88 132.5 L 942.88 136 L 944.63 132.5 L 942.88 129 Z" fill="#000000" stroke="#000000"
+        <path d="M 922.88 164.5 L 915.88 167.99 L 917.63 164.49 L 915.89 160.99 Z" fill="#000000" stroke="#000000"
               stroke-miterlimit="10" pointer-events="all"/>
-        <path d="M 841 201.88 L 896 201.9 L 896 218.5 L 944.63 218.5" fill="none" stroke="#000000"
+        <path d="M 877 277 L 900.53 277.06 L 900.53 297.06 L 917.63 297.02" fill="none" stroke="#000000"
               stroke-miterlimit="10" pointer-events="stroke"/>
-        <path d="M 949.88 218.5 L 942.88 222 L 944.63 218.5 L 942.88 215 Z" fill="#000000" stroke="#000000"
+        <path d="M 922.88 297 L 915.89 300.52 L 917.63 297.02 L 915.87 293.52 Z" fill="#000000" stroke="#000000"
               stroke-miterlimit="10" pointer-events="all"/>
-        <rect x="671" y="110" width="170" height="122.5" rx="18.38" ry="18.38" fill="#ffe6cc" stroke="#d79b00"
+        <rect x="673" y="142" width="204" height="180" rx="27" ry="27" fill="#ffe6cc" stroke="#d79b00"
               pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 168px; height: 1px; padding-top: 171px; margin-left: 673px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 202px; height: 1px; padding-top: 232px; margin-left: 675px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: left; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
                                    Entrypoint
-                                <div>
-                                    <ul>
-                                        <li>provides a method to check that either a DS record or a domain name does not
-                                            exist
-                                            <br/>
+                                <div style="font-size: 18px">
+                                    <ul style="font-size: 18px">
+                                        <li style="font-size: 18px">provides a method to check that either a DS record
+                                            or a domain name does not exist
+                                            <br style="font-size: 18px"/>
                                         </li>
                                     </ul>
                                 </div>
@@ -205,26 +214,26 @@
                         </div>
                     </div>
                 </foreignObject>
-                <text x="673" y="175" fill="#000000" font-family="Helvetica" font-size="12px">Entrypoint...</text>
+                <text x="675" y="237" fill="#000000" font-family="Helvetica" font-size="18px">Entrypoint...</text>
             </switch>
         </g>
-        <rect x="951" y="95" width="175" height="75" rx="11.25" ry="11.25" fill="#fff2cc" stroke="#d6b656"
+        <rect x="924" y="112" width="227" height="105" rx="15.75" ry="15.75" fill="#fff2cc" stroke="#d6b656"
               pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 173px; height: 1px; padding-top: 133px; margin-left: 953px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 225px; height: 1px; padding-top: 165px; margin-left: 926px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: left; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
                                   
-                                <br/>
-                                <div>  NSEC</div>
-                                <div>
-                                    <ul>
-                                        <li>proofs non-existence with NSEC records
-                                            <br/>
+                                <br style="font-size: 18px"/>
+                                <div style="font-size: 18px">  NSEC</div>
+                                <div style="font-size: 18px">
+                                    <ul style="font-size: 18px">
+                                        <li style="font-size: 18px">proves non-existence with NSEC records
+                                            <br style="font-size: 18px"/>
                                         </li>
                                     </ul>
                                 </div>
@@ -232,49 +241,52 @@
                         </div>
                     </div>
                 </foreignObject>
-                <text x="953" y="136" fill="#000000" font-family="Helvetica" font-size="12px">...</text>
+                <text x="926" y="170" fill="#000000" font-family="Helvetica" font-size="18px">...</text>
             </switch>
         </g>
-        <path d="M 481 115 L 561 115 L 561 171.3 L 664.63 171.25" fill="none" stroke="#000000" stroke-miterlimit="10"
+        <path d="M 511 97 L 587 97.06 L 587 232 L 666.63 232" fill="none" stroke="#000000" stroke-miterlimit="10"
               pointer-events="stroke"/>
-        <path d="M 669.88 171.25 L 662.88 174.75 L 664.63 171.25 L 662.88 167.75 Z" fill="#000000" stroke="#000000"
+        <path d="M 671.88 232 L 664.88 235.5 L 666.63 232 L 664.88 228.5 Z" fill="#000000" stroke="#000000"
               stroke-miterlimit="10" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 139px; margin-left: 560px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 143px; margin-left: 588px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
-                                <div>calls for proof of</div>
-                                <div>non-existence</div>
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
+                                <div style="font-size: 18px">calls for
+                                    <br/>
+                                </div>
+                                <div style="font-size: 18px">proof of</div>
+                                <div style="font-size: 18px">non-existence</div>
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="560" y="143" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">calls
-                    for proof of...
+                <text x="588" y="148" fill="#000000" font-family="Helvetica" font-size="18px" text-anchor="middle">calls
+                    for...
                 </text>
             </switch>
         </g>
-        <rect x="951" y="181" width="175" height="75" rx="11.25" ry="11.25" fill="#f8cecc" stroke="#b85450"
+        <rect x="924" y="244.5" width="227" height="105" rx="15.75" ry="15.75" fill="#f8cecc" stroke="#b85450"
               pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 173px; height: 1px; padding-top: 219px; margin-left: 953px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 225px; height: 1px; padding-top: 297px; margin-left: 926px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: left; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
                                   
-                                <br/>
-                                <div>  NSEC3</div>
-                                <div>
-                                    <ul>
-                                        <li>proofs non-existence with NSEC3 records
-                                            <br/>
+                                <br style="font-size: 18px"/>
+                                <div style="font-size: 18px">  NSEC3</div>
+                                <div style="font-size: 18px">
+                                    <ul style="font-size: 18px">
+                                        <li style="font-size: 18px">proves non-existence with NSEC3 records
+                                            <br style="font-size: 18px"/>
                                         </li>
                                     </ul>
                                 </div>
@@ -282,24 +294,25 @@
                         </div>
                     </div>
                 </foreignObject>
-                <text x="953" y="222" fill="#000000" font-family="Helvetica" font-size="12px">...</text>
+                <text x="926" y="302" fill="#000000" font-family="Helvetica" font-size="18px">...</text>
             </switch>
         </g>
-        <rect x="278.5" y="320" width="205" height="100" rx="15" ry="15" fill="#e1d5e7" stroke="#000000"
+        <rect x="267.5" y="387" width="238" height="140" rx="21" ry="21" fill="#e1d5e7" stroke="#000000"
               pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 203px; height: 1px; padding-top: 370px; margin-left: 281px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 236px; height: 1px; padding-top: 457px; margin-left: 270px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: left; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
-                                <span>   Message System</span>
-                                <ul>
-                                    <li>
-                                        <span>provides a Message class to archieve a uniform message layout
-                                            <br/>
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                                <span style="font-size: 18px">   Message System</span>
+                                <ul style="font-size: 18px">
+                                    <li style="font-size: 18px">
+                                        <span style="font-size: 18px">provides a Message class to achieve a uniform
+                                            message layout
+                                            <br style="font-size: 18px"/>
                                         </span>
                                     </li>
                                 </ul>
@@ -307,51 +320,53 @@
                         </div>
                     </div>
                 </foreignObject>
-                <text x="281" y="374" fill="#000000" font-family="Helvetica" font-size="12px">Message System...</text>
+                <text x="270" y="462" fill="#000000" font-family="Helvetica" font-size="18px">Message System...</text>
             </switch>
         </g>
-        <path d="M 90 150 L 120 150 L 274.63 150" fill="none" stroke="#000000" stroke-miterlimit="10"
-              pointer-events="stroke"/>
-        <path d="M 279.88 150 L 272.88 153.5 L 274.63 150 L 272.88 146.5 Z" fill="#000000" stroke="#000000"
+        <path d="M 92 152 L 255.63 152" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 260.88 152 L 253.88 155.5 L 255.63 152 L 253.88 148.5 Z" fill="#000000" stroke="#000000"
               stroke-miterlimit="10" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 170px; margin-left: 140px;">
+                         style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 193px; margin-left: 172px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
-                                <div>calls the DNSSECScanner</div>
-                                <div>class to run a scan
+                            <div style="display: inline-block; font-size: 18px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
+                                <div style="font-size: 18px">calls the
                                     <br/>
+                                </div>
+                                <div style="font-size: 18px">DNSSECScanner</div>
+                                <div style="font-size: 18px">class to run a scan
+                                    <br style="font-size: 18px"/>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="140" y="174" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">calls
-                    the DNSSECScanner...
+                <text x="172" y="198" fill="#000000" font-family="Helvetica" font-size="18px" text-anchor="middle">calls
+                    the...
                 </text>
             </switch>
         </g>
-        <ellipse cx="50" cy="88.13" rx="20" ry="20.625" fill="#e1d5e7" stroke="#000000" pointer-events="all"/>
-        <path d="M 50 108.75 L 50 177.5 M 50 122.5 L 10 122.5 M 50 122.5 L 90 122.5 M 50 177.5 L 10 232.5 M 50 177.5 L 90 232.5"
+        <ellipse cx="52" cy="90.13" rx="20" ry="20.625" fill="#e1d5e7" stroke="#000000" pointer-events="all"/>
+        <path d="M 52 110.75 L 52 179.5 M 52 124.5 L 12 124.5 M 52 124.5 L 92 124.5 M 52 179.5 L 12 234.5 M 52 179.5 L 92 234.5"
               fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%"
                                height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div xmlns="http://www.w3.org/1999/xhtml"
-                         style="display: flex; align-items: unsafe flex-start; justify-content: unsafe flex-start; width: 1px; height: 1px; padding-top: 240px; margin-left: 12px;">
+                         style="display: flex; align-items: unsafe flex-start; justify-content: unsafe flex-start; width: 1px; height: 1px; padding-top: 242px; margin-left: 14px;">
                         <div style="box-sizing: border-box; font-size: 0; text-align: left; ">
                             <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; background-color: #ffffff; white-space: nowrap; ">
-                                User
+                                <font style="font-size: 18px">User</font>
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="12" y="252" fill="#000000" font-family="Helvetica" font-size="12px">User</text>
+                <text x="14" y="254" fill="#000000" font-family="Helvetica" font-size="12px">User</text>
             </switch>
         </g>
     </g>
