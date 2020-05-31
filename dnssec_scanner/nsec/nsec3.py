@@ -35,7 +35,7 @@ def nsec3_proof_of_none_existence(
     nsec3param = utils.get_rr_by_type(zone.RR, dns.rdatatype.NSEC3PARAM)
 
     if check_ds:
-        status = check_nsec_bitmap(nsec3s, nsec3param.items[0], result.domain)
+        status = check_nsec_bitmap(nsec3s, nsec3param.items[0], zone.child_name)
         # If we want to show that there is no DS record for the QNAME
         # and we have found an NSEC3 record for the QNAME without the
         # DS record in its bitmap field we are already done.

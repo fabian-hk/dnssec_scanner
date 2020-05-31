@@ -99,13 +99,6 @@ class DNSSECScanner:
             zone.RR = rrsets
             nsec.proof_none_existence(zone, result, False)
             return SoaState.FOUND
-        elif utils.get_rr_by_type(rrsets, dns.rdatatype.SOA):
-            # We are in the zone for the domain name
-            rr_types = self.find_records(zone)
-            zone.RR = self.get_records(zone, rr_types)
-
-            validate_rrset(zone, result, True)
-            return SoaState.FOUND
         elif utils.get_rrs_by_type(rrsets, dns.rdatatype.CNAME):
             # We have found a CNAME RR set so we have to start from the top again
             zone.RR = rrsets
@@ -116,6 +109,13 @@ class DNSSECScanner:
             )
             result.domain = self.domain
             return SoaState.FOUND_CNAME
+        elif utils.get_rr_by_type(rrsets, dns.rdatatype.SOA):
+            # We are in the zone for the domain name
+            rr_types = self.find_records(zone)
+            zone.RR = self.get_records(zone, rr_types)
+
+            validate_rrset(zone, result, True)
+            return SoaState.FOUND
 
         return SoaState.NOT_FOUND
 

@@ -5,4 +5,4 @@ for the DNSSEC Scanner. All tests together need about
 1 minute to finish. To run the tests execute: 
 ```python3 -m unittest discover tests/```
 
-**All tests were last checked on the 11.05.2020.**
+**All tests were last checked on the 31.05.2020.**
